@@ -1,12 +1,25 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
+import { spawn, exec } from "node:child_process";
 import { prisma } from "@/lib/prisma";
 import { OpenAI } from "openai";
+import { promisify } from "node:util";
+import { Readable } from "node:stream";
+const execAsync = promisify(exec);
 
 // Initialize OpenAI client
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+// Check if pdftotext is installed
+async function isPdftotextInstalled(): Promise<boolean> {
+  try {
+    await execAsync("which pdftotext");
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
 
 // Map to store vectorization progress
 const vectorizationProgress = new Map<string, number>();
@@ -20,17 +33,18 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const documentId = searchParams.get("documentId");
+    const id = searchParams.get("id");
 
-    if (!documentId) {
+    if (!id) {
       return NextResponse.json(
-        { error: "Document ID is required" },
+        { error: "Resource ID is required" },
         { status: 400 }
       );
     }
 
     // Get progress from the map
-    const progress = vectorizationProgress.get(documentId) || 0;
+    console.log("cool", id, vectorizationProgress.get(id));
+    const progress = vectorizationProgress.get(id) || 0;
     const status = progress === 100 ? "completed" : "processing";
 
     return NextResponse.json({ progress, status });
@@ -45,40 +59,30 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { id, type, content } = await request.json();
+    const { id, type, content, userId } = await request.json();
 
     if (!id) {
       return NextResponse.json(
-        { error: "Document ID is required" },
+        { error: "Resource ID is required" },
         { status: 400 }
       );
     }
 
-    if (!type || (type !== "document" && type !== "webpage")) {
+    if (!["document", "webpage"].includes(type)) {
       return NextResponse.json(
         { error: "Invalid document type" },
         { status: 400 }
       );
     }
+
+    const isWebPage = type === "webpage";
     // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-    let document: any;
-    // Get document from database
-    if (type === "document" && content) {
-      document = await prisma.document.findUnique({
-        where: { id },
-      });
-      vectorizeWebPage(document.id, content);
-    }
-    if (type === "webpage") {
-      document = await prisma.webPage.findUnique({
-        where: { id },
-      });
-      vectorizeDocument(document.id, document.fileUrl);
+    let document: any = null;
+
+    if (isWebPage) {
+      document = await prisma.webPage.findUnique({ where: { id } });
+    } else {
+      document = await prisma.document.findUnique({ where: { id } });
     }
 
     if (!document) {
@@ -88,12 +92,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if document belongs to the user
     if (document.userId !== userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Start vectorization process asynchronously
+    if (isWebPage && content) {
+      vectorizeWebPage(document.id, content);
+    } else if (!isWebPage && document.fileUrl) {
+      vectorizeDocument(document.id, document.fileUrl);
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -109,19 +116,33 @@ async function vectorizeDocument(documentId: string, documentUrl: string) {
   try {
     // Initialize progress
     vectorizationProgress.set(documentId, 0);
+    const pdftotextInstalled = await isPdftotextInstalled();
+    if (!pdftotextInstalled) {
+      throw new Error("pdftotext is not installed on the server.");
+    }
 
     // todo: Read file content from fileUrl (minio)
     const response = await fetch(documentUrl);
-    if (!response.ok)
-      throw new Error(`Failed to fetch: ${response.statusText}`);
 
-    // Step 2: Read the blob as a buffer and convert to string
-    const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const fileContent = buffer.toString("utf-8");
+    if (!response.ok) {
+      throw new Error(`Failed to download PDF: ${response.statusText}`);
+    }
+
+    const pdfBuffer = await response.arrayBuffer();
+
+    // Check if buffer is empty
+    if (pdfBuffer.byteLength === 0) {
+      throw new Error("Downloaded file is empty");
+    }
+
+    // Extract text using pdftotext with buffer input
+    console.log("Extracting text from PDF buffer");
+    const extractedText = await extractTextFromPdfBuffer(
+      Buffer.from(pdfBuffer)
+    );
 
     // Split content into chunks (simplified for demonstration)
-    const chunks = splitIntoChunks(fileContent, 1000);
+    const chunks = splitIntoChunks(extractedText.trim(), 1000);
     const totalChunks = chunks.length;
 
     // Process each chunk and update progress
@@ -142,6 +163,7 @@ async function vectorizeDocument(documentId: string, documentUrl: string) {
 
       // Update progress
       const progress = Math.round(((i + 1) / totalChunks) * 100);
+      console.log(`Progress for document ${documentId}: ${progress}%`);
       vectorizationProgress.set(documentId, progress);
     }
 
@@ -178,10 +200,10 @@ async function vectorizeWebPage(webPageId: string, content: string) {
           webPageId: webPageId,
         },
       });
-
       // Update progress
       const progress = Math.round(((i + 1) / totalChunks) * 100);
       vectorizationProgress.set(webPageId, progress);
+      const progressbar = vectorizationProgress.get(webPageId);
     }
 
     // Set final progress to 100%
@@ -213,4 +235,63 @@ async function generateEmbedding(text: string): Promise<number[]> {
     console.error("Error generating embedding:", error);
     throw error;
   }
+}
+
+// Function to extract text from PDF buffer using pdftotext
+async function extractTextFromPdfBuffer(pdfBuffer: Buffer): Promise<string> {
+  return new Promise((resolve, reject) => {
+    try {
+      // Create a readable stream from the buffer
+      const bufferStream = new Readable();
+      bufferStream.push(pdfBuffer);
+      bufferStream.push(null); // Signal the end of the stream
+
+      // Spawn pdftotext process with stdin/stdout pipes
+      const pdfToText = spawn("pdftotext", ["-", "-"]);
+
+      // Collect stdout chunks
+      const chunks: Buffer[] = [];
+      pdfToText.stdout.on("data", (chunk) => {
+        chunks.push(Buffer.from(chunk));
+      });
+
+      // Handle process completion
+      pdfToText.on("close", (code) => {
+        if (code !== 0) {
+          reject(new Error(`pdftotext process exited with code ${code}`));
+          return;
+        }
+
+        // Combine chunks and convert to string
+        const textBuffer = Buffer.concat(chunks);
+        resolve(textBuffer.toString("utf-8"));
+      });
+
+      // Handle process errors
+      pdfToText.on("error", (err) => {
+        reject(new Error(`pdftotext process error: ${err.message}`));
+      });
+
+      // Handle stderr output
+      pdfToText.stderr.on("data", (data) => {
+        console.error(`pdftotext stderr: ${data}`);
+      });
+
+      // Pipe the PDF buffer to pdftotext's stdin
+      bufferStream.pipe(pdfToText.stdin);
+
+      // Handle stdin errors
+      pdfToText.stdin.on("error", (err) => {
+        reject(new Error(`pdftotext stdin error: ${err.message}`));
+      });
+    } catch (error) {
+      reject(
+        new Error(
+          `Failed to extract text: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`
+        )
+      );
+    }
+  });
 }

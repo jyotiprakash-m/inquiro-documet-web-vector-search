@@ -28,6 +28,7 @@ export async function POST(request: NextRequest) {
 
     // Fetch web page content
     const response = await fetch(url);
+
     if (!response.ok) {
       return NextResponse.json(
         { error: "Failed to fetch web page" },
@@ -45,11 +46,28 @@ export async function POST(request: NextRequest) {
       },
     });
     const content = extractTextContent(html);
+
     //todo: call vectorize api here
+
+    // get base url
+    const baseUrl = request.nextUrl.origin;
+
+    fetch(`${baseUrl}/api/vectorize`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        id: webPage.id,
+        type: "webpage",
+        content: content,
+        userId: userId as string,
+      }),
+    });
 
     return NextResponse.json({
       success: true,
-      webPageId: "webPage.id",
+      webPageId: webPage.id,
     });
   } catch (error) {
     console.error("Error processing URL:", error);

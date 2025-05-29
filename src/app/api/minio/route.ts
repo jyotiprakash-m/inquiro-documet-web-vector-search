@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
     const document = await prisma.document.create({
       data: {
         title: file.name,
-        fileUrl: presignedUrl, // or store `objectName` if you plan to generate signed URLs later
+        fileUrl: presignedUrl,
         fileType: file.type,
         fileSize: file.size,
         userId: userId,
@@ -85,6 +85,20 @@ export async function POST(request: NextRequest) {
     });
 
     //todo: call vectorize api here
+    // get base url
+    const baseUrl = request.nextUrl.origin;
+
+    fetch(`${baseUrl}/api/vectorize`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        id: document.id,
+        type: "document",
+        userId,
+      }),
+    });
 
     return NextResponse.json({
       success: true,

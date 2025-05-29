@@ -39,14 +39,13 @@ export default function FileUpload() {
     try {
       setUploading(true);
       setUploadProgress(0);
-      // setVectorizingProgress(0);
+      setVectorizingProgress(0);
 
       // Create form data for file upload
       const formData = new FormData();
       formData.append("file", file);
 
-      // Upload file
-      const uploadResponse = await fetch("/api/upload", {
+      const uploadResponse = await fetch("/api/minio", {
         method: "POST",
         body: formData,
       });
@@ -57,27 +56,27 @@ export default function FileUpload() {
 
       setUploadProgress(100);
 
-      // Start vectorization process
       const { documentId } = await uploadResponse.json();
 
       // Poll for vectorization progress
-      // const pollInterval = setInterval(async () => {
-      //   const progressResponse = await fetch(`/api/vectorize/status?documentId=${documentId}`);
-      //   const { progress, status } = await progressResponse.json();
+      const pollInterval = setInterval(async () => {
+        const progressResponse = await fetch(`/api/vectorize?id=${documentId}`);
+        const { progress, status } = await progressResponse.json();
 
-      //   setVectorizingProgress(progress);
+        setVectorizingProgress(progress);
 
-      //   if (status === 'completed' || status === 'failed') {
-      //     clearInterval(pollInterval);
+        if (status === "completed" || status === "failed") {
+          clearInterval(pollInterval);
 
-      //     if (status === 'completed') {
-      //       router.push('/dashboard');
-      //     } else {
-      //       setError('Vectorization failed');
-      //       setUploading(false);
-      //     }
-      //   }
-      // }, 1000);
+          if (status === "completed") {
+            router.push("/dashboard");
+            setUploading(false);
+          } else {
+            setError("Vectorization failed");
+            setUploading(false);
+          }
+        }
+      }, 1000);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "An unknown error occurred"
@@ -136,7 +135,7 @@ export default function FileUpload() {
                 <div
                   className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
                   style={{ width: `${uploadProgress}%` }}
-                ></div>
+                />
               </div>
             </div>
 
@@ -150,7 +149,7 @@ export default function FileUpload() {
                   <div
                     className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
                     style={{ width: `${vectorizingProgress}%` }}
-                  ></div>
+                  />
                 </div>
               </div>
             )}
@@ -166,6 +165,7 @@ export default function FileUpload() {
                 ? "bg-gray-300 cursor-not-allowed"
                 : "bg-indigo-600 hover:bg-indigo-700"
             }`}
+            type="button"
           >
             {uploading ? "Processing..." : "Upload Document"}
           </button>

@@ -28,7 +28,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Create uploads directory if it doesn't exist
-    // todo:(Change the process)
     const uploadsDir = join(process.cwd(), "uploads");
     try {
       await writeFile(join(uploadsDir, ".keep"), "");
@@ -60,6 +59,21 @@ export async function POST(request: NextRequest) {
     });
 
     //todo: call vectorize api here
+
+    // get base url
+    const baseUrl = request.nextUrl.origin;
+
+    fetch(`${baseUrl}/api/vectorize`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        id: document.id,
+        type: "document",
+        userId,
+      }),
+    });
 
     return NextResponse.json({
       success: true,

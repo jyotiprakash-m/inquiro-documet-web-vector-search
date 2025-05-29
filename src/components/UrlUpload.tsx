@@ -22,7 +22,7 @@ export default function UrlUpload() {
       setProgress(0);
 
       // Submit URL for processing
-      const response = await fetch("/api/url", {
+      const response = await fetch("/api/urls", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -36,28 +36,26 @@ export default function UrlUpload() {
       }
 
       const { webPageId } = await response.json();
-      setProgress(100);
 
       // Poll for vectorization progress
-      // const pollInterval = setInterval(async () => {
-      //   const progressResponse = await fetch(
-      //     `/api/vectorize/status?documentId=${webPageId}`
-      //   );
-      //   const { progress, status } = await progressResponse.json();
+      const pollInterval = setInterval(async () => {
+        const progressResponse = await fetch(`/api/vectorize?id=${webPageId}`);
+        const { progress, status } = await progressResponse.json();
 
-      //   setProgress(50 + progress / 2); // Scale to 50-100%
+        setProgress(progress);
 
-      //   if (status === "completed" || status === "failed") {
-      //     clearInterval(pollInterval);
+        if (status === "completed" || status === "failed") {
+          clearInterval(pollInterval);
 
-      //     if (status === "completed") {
-      //       router.push("/dashboard");
-      //     } else {
-      //       setError("Vectorization failed");
-      //       setLoading(false);
-      //     }
-      //   }
-      // }, 1000);
+          if (status === "completed") {
+            router.push("/dashboard");
+            setLoading(false);
+          } else {
+            setError("Vectorization failed");
+            setLoading(false);
+          }
+        }
+      }, 1000);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "An unknown error occurred"

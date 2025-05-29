@@ -30,11 +30,12 @@ export default function Dashboard() {
         }
         // get urls
         const urlResponse = await fetch("/api/urls");
+        const urlData = await urlResponse.json();
         if (urlResponse.ok) {
-          const urlData = await urlResponse.json();
           setDocuments((prevDocs) => [
             ...prevDocs,
-            ...urlData.urls.map((url: any) => ({
+            // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+            ...urlData.documents.map((url: any) => ({
               id: url.id,
               title: url.title,
               fileType: "text/html",
