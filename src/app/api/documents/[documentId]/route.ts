@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
+import { redirect } from "next/navigation";
 
 export async function GET(request: NextRequest) {
   try {

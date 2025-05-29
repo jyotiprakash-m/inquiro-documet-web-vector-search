@@ -63,7 +63,7 @@ export default function Dashboard() {
   const getFileIcon = (fileType: string) => {
     if (fileType.includes("pdf")) return "📄";
     if (fileType.includes("word") || fileType.includes("doc")) return "📝";
-    if (fileType.includes("text")) return "📃";
+    if (fileType.includes("text")) return "🌐";
     return "📁";
   };
 
@@ -74,7 +74,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Your Documents/URL</h1>
+        <h1 className="text-2xl font-bold">Your Documents / URL</h1>
         <div className="space-x-2">
           <button
             type="button"
@@ -141,7 +141,9 @@ export default function Dashboard() {
                       </p>
                       <p className="text-sm text-gray-500">
                         {formatFileSize(doc.fileSize)} •{" "}
-                        {new Date(doc.createdAt).toLocaleDateString()}
+                        {new Date(doc.createdAt).toLocaleDateString()},{" "}
+                        {new Date(doc.createdAt).toLocaleTimeString()} •{" "}
+                        {isUrl ? "Webpage" : doc.fileType}
                       </p>
                     </div>
                     <div>

@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
+import { redirect } from "next/navigation";
 
 export async function GET(request: NextRequest) {
   try {
@@ -27,7 +28,8 @@ export async function GET(request: NextRequest) {
 
     // Check if webpage belongs to the user
     if (webpage.userId !== userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      redirect("/dashboard");
+      // return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     return NextResponse.json({ webpage });
