@@ -1,4 +1,5 @@
 import { UserButton } from "@clerk/nextjs";
+import Image from "next/image";
 import Link from "next/link";
 
 export default function DashboardLayout({
@@ -17,7 +18,7 @@ export default function DashboardLayout({
                   href="/dashboard"
                   className="text-xl font-bold text-gray-900"
                 >
-                  Document Search
+                  <Image src="/logo.png" alt="Logo" width={130} height={40} />
                 </Link>
               </div>
               <div className="hidden sm:ml-6 sm:flex sm:space-x-8">

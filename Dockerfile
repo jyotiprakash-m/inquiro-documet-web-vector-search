@@ -1,12 +1,12 @@
 FROM node:20.17.0-alpine
 
 # Install Python and Poppler
-# RUN apk add --no-cache python3 py3-pip poppler-utils
+RUN apk add --no-cache python3 py3-pip poppler-utils
 
-ENV NODE_ENV production
-ENV NEXT_TELEMETRY_DISABLED 1
-ENV PORT 3000
-ENV HOSTNAME "0.0.0.0"
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    PORT=3000 \
+    HOSTNAME=0.0.0.0
 
 WORKDIR /app
 
