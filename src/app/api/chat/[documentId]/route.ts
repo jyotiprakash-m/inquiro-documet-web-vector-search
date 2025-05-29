@@ -110,6 +110,7 @@ export async function POST(request: NextRequest) {
 // Function to find most similar chunks based on cosine similarity
 function findMostSimilarChunks(
   queryEmbedding: number[],
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
   vectors: any[],
   count: number
 ) {
