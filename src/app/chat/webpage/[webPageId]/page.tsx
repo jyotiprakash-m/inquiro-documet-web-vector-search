@@ -1,41 +1,84 @@
 "use client";
 
-import { useState } from "react";
-import { useChat } from "ai/react";
+import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 
 export default function ChatPage() {
-  const { documentId } = useParams();
-  const [documentTitle, setDocumentTitle] = useState("Document");
+  const params = useParams();
+  const webPageId = params.webPageId as string;
 
-  // Fetch document title on component mount
-  useState(() => {
-    async function fetchDocumentInfo() {
+  const [webPageTitle, setWebPageTitle] = useState("");
+  const [messages, setMessages] = useState([
+    {
+      id: "welcome",
+      role: "assistant",
+      content: `Hello! I'm your webPage assistant. Ask me anything about "${webPageTitle}".`,
+    },
+  ]);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Fetch webPage info on mount
+  useEffect(() => {
+    async function fetchwebPageInfo() {
       try {
-        const response = await fetch(`/api/documents/${documentId}`);
+        const response = await fetch(`/api/urls/${webPageId}`);
         if (response.ok) {
           const data = await response.json();
-          setDocumentTitle(data.document.title);
+          console.log(data);
+          setWebPageTitle(data.webpage.title);
         }
       } catch (error) {
-        console.error("Error fetching document info:", error);
+        console.error("Error fetching webPage info:", error);
       }
     }
 
-    fetchDocumentInfo();
-  });
+    if (webPageId) {
+      fetchwebPageInfo();
+    }
+  }, [webPageId]);
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading } =
-    useChat({
-      api: `/api/chat/${documentId}`,
-      initialMessages: [
-        {
-          id: "welcome",
-          role: "assistant",
-          content: `Hello! I'm your document assistant. Ask me anything about "${documentTitle}".`,
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+
+    const userMessage = {
+      id: crypto.randomUUID(),
+      role: "user" as const,
+      content: input,
+    };
+
+    setMessages((prev) => [...prev, userMessage]);
+    setIsLoading(true);
+
+    try {
+      const res = await fetch(`/api/chat/webpage/${webPageId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      ],
-    });
+        body: JSON.stringify({
+          prompt: input,
+          messages: [...messages, userMessage],
+        }),
+      });
+
+      const data = await res.json();
+
+      const assistantMessage = {
+        id: crypto.randomUUID(),
+        role: "assistant" as const,
+        content: data.response || "Sorry, I couldn't generate a response.",
+      };
+
+      setMessages((prev) => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error("Error sending message:", error);
+    } finally {
+      setInput("");
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)]">
@@ -58,6 +101,7 @@ export default function ChatPage() {
             </div>
           </div>
         ))}
+
         {isLoading && (
           <div className="flex justify-start">
             <div className="max-w-[80%] rounded-lg px-4 py-2 bg-gray-200 text-gray-800">
@@ -82,8 +126,8 @@ export default function ChatPage() {
           <input
             type="text"
             value={input}
-            onChange={handleInputChange}
-            placeholder="Ask a question about your document..."
+            onChange={(e) => setInput(e.target.value)}
+            placeholder={`Ask a question about "${webPageTitle}"...`}
             className="flex-1 border rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
           <button

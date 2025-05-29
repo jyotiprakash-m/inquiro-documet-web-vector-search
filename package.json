@@ -16,7 +16,6 @@
     "@neondatabase/serverless": "^1.0.0",
     "@prisma/client": "^6.8.2",
     "@vercel/postgres": "^0.10.0",
-    "ai": "^4.3.16",
     "minio": "^8.0.5",
     "next": "15.3.2",
     "openai": "^4.103.0",

@@ -69,7 +69,7 @@ export default function FileUpload() {
           clearInterval(pollInterval);
 
           if (status === "completed") {
-            router.push("/dashboard");
+            router.refresh();
             setUploading(false);
           } else {
             setError("Vectorization failed");

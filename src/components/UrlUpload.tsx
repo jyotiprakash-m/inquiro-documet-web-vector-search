@@ -48,7 +48,7 @@ export default function UrlUpload() {
           clearInterval(pollInterval);
 
           if (status === "completed") {
-            router.push("/dashboard");
+            router.refresh();
             setLoading(false);
           } else {
             setError("Vectorization failed");

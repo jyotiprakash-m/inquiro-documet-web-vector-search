@@ -17,13 +17,19 @@ export async function POST(request: NextRequest) {
     }
 
     const url = new URL(request.url);
-    const documentId = url.pathname.split("/").pop();
-    const { messages } = await request.json();
-    const lastMessage = messages[messages.length - 1].content;
+    const webPageId = url.pathname.split("/").pop();
+    const { messages, prompt } = await request.json();
+
+    if (!prompt || !messages) {
+      return NextResponse.json(
+        { error: "Missing prompt or messages" },
+        { status: 400 }
+      );
+    }
 
     // Get document from database
-    const document = await prisma.document.findUnique({
-      where: { id: documentId },
+    const document = await prisma.webPage.findUnique({
+      where: { id: webPageId },
       include: {
         vectors: true,
       },
@@ -36,7 +42,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if document belongs to the user
     if (document.userId !== userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -44,24 +49,21 @@ export async function POST(request: NextRequest) {
     // Generate embedding for the query
     const queryEmbeddingResponse = await openai.embeddings.create({
       model: "text-embedding-ada-002",
-      input: lastMessage,
+      input: prompt,
     });
 
     const queryEmbedding = queryEmbeddingResponse.data[0].embedding;
 
-    // Find relevant document chunks using vector similarity
-    // Note: In a real implementation, you would use a vector database with similarity search
-    // For simplicity, we're using a basic approach here
+    // Find most relevant chunks
     const relevantChunks = findMostSimilarChunks(
       queryEmbedding,
       document.vectors,
       3
     );
 
-    // Combine relevant chunks into context
     const context = relevantChunks.map((v) => v.content).join("\n\n");
 
-    // Generate response using OpenAI
+    // Get completion from OpenAI (not streaming)
     const chatResponse = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
       messages: [
@@ -69,34 +71,23 @@ export async function POST(request: NextRequest) {
           role: "system",
           content: `You are a helpful assistant that answers questions based on the provided document context. 
           Only answer what can be inferred from the context. If you don't know the answer, say so.
-          
+
           Context from the document:
           ${context}`,
         },
         ...messages,
+        {
+          role: "user",
+          content: prompt,
+        },
       ],
-      stream: true,
     });
 
-    const stream = new ReadableStream({
-      async start(controller) {
-        for await (const chunk of chatResponse) {
-          const content = chunk.choices?.[0]?.delta?.content;
-          if (content) {
-            controller.enqueue(new TextEncoder().encode(content));
-          }
-        }
-        controller.close();
-      },
-    });
+    const assistantReply =
+      chatResponse.choices?.[0]?.message?.content || "I'm not sure.";
 
-    // Return streaming response
-    // const stream = OpenAI.streamUtils.toReadableStream(chatResponse);
-    return new NextResponse(stream, {
-      headers: {
-        "Content-Type": "text/plain; charset=utf-8",
-        "Transfer-Encoding": "chunked",
-      },
+    return NextResponse.json({
+      response: assistantReply,
     });
   } catch (error) {
     console.error("Error in chat API:", error);
