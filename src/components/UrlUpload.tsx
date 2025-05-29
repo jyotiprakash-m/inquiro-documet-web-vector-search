@@ -36,28 +36,28 @@ export default function UrlUpload() {
       }
 
       const { webPageId } = await response.json();
-      setProgress(50);
+      setProgress(100);
 
       // Poll for vectorization progress
-      const pollInterval = setInterval(async () => {
-        const progressResponse = await fetch(
-          `/api/vectorize/status?documentId=${webPageId}`
-        );
-        const { progress, status } = await progressResponse.json();
+      // const pollInterval = setInterval(async () => {
+      //   const progressResponse = await fetch(
+      //     `/api/vectorize/status?documentId=${webPageId}`
+      //   );
+      //   const { progress, status } = await progressResponse.json();
 
-        setProgress(50 + progress / 2); // Scale to 50-100%
+      //   setProgress(50 + progress / 2); // Scale to 50-100%
 
-        if (status === "completed" || status === "failed") {
-          clearInterval(pollInterval);
+      //   if (status === "completed" || status === "failed") {
+      //     clearInterval(pollInterval);
 
-          if (status === "completed") {
-            router.push("/dashboard");
-          } else {
-            setError("Vectorization failed");
-            setLoading(false);
-          }
-        }
-      }, 1000);
+      //     if (status === "completed") {
+      //       router.push("/dashboard");
+      //     } else {
+      //       setError("Vectorization failed");
+      //       setLoading(false);
+      //     }
+      //   }
+      // }, 1000);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "An unknown error occurred"
@@ -106,7 +106,7 @@ export default function UrlUpload() {
                 <div
                   className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
                   style={{ width: `${progress}%` }}
-                ></div>
+                />
               </div>
             </div>
           )}

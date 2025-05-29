@@ -28,6 +28,21 @@ export default function Dashboard() {
           const data = await response.json();
           setDocuments(data.documents);
         }
+        // get urls
+        const urlResponse = await fetch("/api/urls");
+        if (urlResponse.ok) {
+          const urlData = await urlResponse.json();
+          setDocuments((prevDocs) => [
+            ...prevDocs,
+            ...urlData.urls.map((url: any) => ({
+              id: url.id,
+              title: url.title,
+              fileType: "text/html",
+              fileSize: 0, // URLs don't have a file size
+              createdAt: url.createdAt,
+            })),
+          ]);
+        }
       } catch (error) {
         console.error("Error fetching documents:", error);
       } finally {
