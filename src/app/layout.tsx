@@ -1,13 +1,14 @@
-import { ClerkProvider } from '@clerk/nextjs';
-import './globals.css';
-import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { ClerkProvider } from "@clerk/nextjs";
+import "./globals.css";
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'Document Search App',
-  description: 'Search through your documents using AI',
+  title: "Inquiro – AI Document Search",
+  description:
+    "Upload, search, and chat with your documents using AI. Secure, fast, and easy document management.",
 };
 
 export default function RootLayout({
@@ -18,7 +19,7 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en">
-        <body className={inter.className}>{children}</body>
+        <body className={`${inter.className} `}>{children}</body>
       </html>
     </ClerkProvider>
   );

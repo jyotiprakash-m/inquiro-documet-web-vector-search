@@ -43,7 +43,6 @@ export async function GET(request: NextRequest) {
     }
 
     // Get progress from the map
-    console.log("cool", id, vectorizationProgress.get(id));
     const progress = vectorizationProgress.get(id) || 0;
     const status = progress === 100 ? "completed" : "processing";
 
@@ -136,7 +135,6 @@ async function vectorizeDocument(documentId: string, documentUrl: string) {
     }
 
     // Extract text using pdftotext with buffer input
-    console.log("Extracting text from PDF buffer");
     const extractedText = await extractTextFromPdfBuffer(
       Buffer.from(pdfBuffer)
     );
@@ -163,7 +161,6 @@ async function vectorizeDocument(documentId: string, documentUrl: string) {
 
       // Update progress
       const progress = Math.round(((i + 1) / totalChunks) * 100);
-      console.log(`Progress for document ${documentId}: ${progress}%`);
       vectorizationProgress.set(documentId, progress);
     }
 

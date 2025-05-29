@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import FileUpload from "@/components/FileUpload";
 import UrlUpload from "@/components/UrlUpload";
+import Image from "next/image";
 
 interface Document {
   id: string;
@@ -74,21 +75,47 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Your Documents / URL</h1>
+        <h1 className="text-2xl font-bold ">Your Documents / URL</h1>
         <div className="space-x-2">
           <button
             type="button"
             onClick={() => setShowUpload(!showUpload)}
             className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
           >
-            {showUpload ? "Hide Upload" : "Upload Document"}
+            {showUpload ? (
+              "Hide Upload"
+            ) : (
+              <span>
+                <Image
+                  src="/upload.png"
+                  width={18}
+                  height={18}
+                  alt="Upload image"
+                  className="inline-block mr-1"
+                />{" "}
+                Document
+              </span>
+            )}
           </button>
           <button
             type="button"
             onClick={() => setShowUrl(!showUrl)}
             className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
           >
-            {showUrl ? "Hide Url" : "Upload URL"}
+            {showUrl ? (
+              "Hide Url"
+            ) : (
+              <span>
+                <Image
+                  src="/upload.png"
+                  width={18}
+                  height={18}
+                  alt="Upload image"
+                  className="inline-block mr-1"
+                />{" "}
+                URL
+              </span>
+            )}
           </button>
         </div>
       </div>
