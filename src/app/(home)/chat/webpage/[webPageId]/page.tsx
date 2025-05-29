@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 
 export default function ChatPage() {
@@ -18,6 +18,12 @@ export default function ChatPage() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
   // Fetch webPage info on mount
   useEffect(() => {
     async function fetchwebPageInfo() {
@@ -25,8 +31,14 @@ export default function ChatPage() {
         const response = await fetch(`/api/urls/${webPageId}`);
         if (response.ok) {
           const data = await response.json();
-          console.log(data);
           setWebPageTitle(data.webpage.title);
+          setMessages([
+            {
+              id: "welcome",
+              role: "assistant",
+              content: `Hello! I'm your webPage assistant. Ask me anything about "${data.webpage.title}"`,
+            },
+          ]);
         }
       } catch (error) {
         console.error("Error fetching webPage info:", error);
@@ -81,7 +93,7 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)]">
+    <div className="flex flex-col h-[calc(100vh-8rem)]">
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((message) => (
           <div
@@ -119,6 +131,9 @@ export default function ChatPage() {
             </div>
           </div>
         )}
+
+        {/* This empty div helps scroll to bottom */}
+        <div ref={messagesEndRef} />
       </div>
 
       <div className="border-t p-4">

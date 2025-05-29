@@ -1,22 +1,28 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 
 export default function ChatPage() {
   const params = useParams();
   const documentId = params.documentId as string;
 
-  const [documentTitle, setDocumentTitle] = useState("Document");
+  const [documentTitle, setDocumentTitle] = useState("");
   const [messages, setMessages] = useState([
     {
       id: "welcome",
       role: "assistant",
-      content: `Hello! I'm your document assistant. Ask me anything about "${documentTitle}".`,
+      content: `Hello! I'm your document assistant. Ask me anything about `,
     },
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   // Fetch document info on mount
   useEffect(() => {
@@ -25,7 +31,15 @@ export default function ChatPage() {
         const response = await fetch(`/api/documents/${documentId}`);
         if (response.ok) {
           const data = await response.json();
+
           setDocumentTitle(data.document.title);
+          setMessages([
+            {
+              id: "welcome",
+              role: "assistant",
+              content: `Hello! I'm your document assistant. Ask me anything about "${data.document.title}"`,
+            },
+          ]);
         }
       } catch (error) {
         console.error("Error fetching document info:", error);
@@ -80,7 +94,7 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)]">
+    <div className="flex flex-col h-[calc(100vh-8rem)]">
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((message) => (
           <div
@@ -118,6 +132,9 @@ export default function ChatPage() {
             </div>
           </div>
         )}
+
+        {/* This empty div helps scroll to bottom */}
+        <div ref={messagesEndRef} />
       </div>
 
       <div className="border-t p-4">

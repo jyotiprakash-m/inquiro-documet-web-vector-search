@@ -48,7 +48,7 @@ export default function UrlUpload() {
           clearInterval(pollInterval);
 
           if (status === "completed") {
-            router.refresh();
+            router.push(`/chat/webpage/${webPageId}`);
             setLoading(false);
           } else {
             setError("Vectorization failed");

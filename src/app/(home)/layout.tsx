@@ -13,7 +13,10 @@ export default function DashboardLayout({
           <div className="flex justify-between h-16">
             <div className="flex">
               <div className="flex-shrink-0 flex items-center">
-                <Link href="/dashboard" className="text-xl font-bold text-gray-900">
+                <Link
+                  href="/dashboard"
+                  className="text-xl font-bold text-gray-900"
+                >
                   Document Search
                 </Link>
               </div>
@@ -27,7 +30,7 @@ export default function DashboardLayout({
               </div>
             </div>
             <div className="flex items-center">
-              <UserButton afterSignOutUrl="/" />
+              <UserButton />
             </div>
           </div>
         </div>

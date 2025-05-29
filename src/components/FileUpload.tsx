@@ -69,8 +69,8 @@ export default function FileUpload() {
           clearInterval(pollInterval);
 
           if (status === "completed") {
-            router.refresh();
             setUploading(false);
+            router.push(`/chat/document/${documentId}`);
           } else {
             setError("Vectorization failed");
             setUploading(false);
