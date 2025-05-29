@@ -1,12 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
-import { OpenAI } from "openai";
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { webPageId: string } }
-) {
+export async function GET(request: NextRequest) {
   try {
     const { userId } = await auth();
 
@@ -14,7 +10,8 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { webPageId } = await params;
+    const url = new URL(request.url);
+    const webPageId = url.pathname.split("/").pop();
 
     // Get document from database
     const document = await prisma.webPage.findUnique({

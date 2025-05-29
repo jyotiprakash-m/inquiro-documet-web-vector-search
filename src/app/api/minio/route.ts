@@ -84,6 +84,8 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    //todo: call vectorize api here
+
     return NextResponse.json({
       success: true,
       documentId: document.id,

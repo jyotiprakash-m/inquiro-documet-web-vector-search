@@ -2,7 +2,6 @@ import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { OpenAI } from "openai";
-import { readFile } from "node:fs/promises";
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -12,6 +11,7 @@ const openai = new OpenAI({
 // Map to store vectorization progress
 const vectorizationProgress = new Map<string, number>();
 
+//Get status of vectorization
 export async function GET(request: NextRequest) {
   try {
     const { userId } = await auth();
@@ -50,23 +50,40 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { documentId } = await request.json();
+    const { id, type, content } = await request.json();
 
-    if (!documentId) {
+    if (!id) {
       return NextResponse.json(
         { error: "Document ID is required" },
         { status: 400 }
       );
     }
 
+    if (!type || (type !== "document" && type !== "webpage")) {
+      return NextResponse.json(
+        { error: "Invalid document type" },
+        { status: 400 }
+      );
+    }
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    let document: any;
     // Get document from database
-    const document = await prisma.document.findUnique({
-      where: { id: documentId },
-    });
+    if (type === "document" && content) {
+      document = await prisma.document.findUnique({
+        where: { id },
+      });
+      vectorizeWebPage(document.id, content);
+    }
+    if (type === "webpage") {
+      document = await prisma.webPage.findUnique({
+        where: { id },
+      });
+      vectorizeDocument(document.id, document.fileUrl);
+    }
 
     if (!document) {
       return NextResponse.json(
-        { error: "Document not found" },
+        { error: "Resource not found" },
         { status: 404 }
       );
     }
@@ -77,7 +94,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Start vectorization process asynchronously
-    vectorizeDocument(document.id, document.fileUrl);
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -89,16 +105,23 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function vectorizeDocument(documentId: string, filePath: string) {
+async function vectorizeDocument(documentId: string, documentUrl: string) {
   try {
     // Initialize progress
     vectorizationProgress.set(documentId, 0);
 
-    // Read file content
-    const fileContent = await readFile(filePath, "utf-8");
+    // todo: Read file content from fileUrl (minio)
+    const response = await fetch(documentUrl);
+    if (!response.ok)
+      throw new Error(`Failed to fetch: ${response.statusText}`);
+
+    // Step 2: Read the blob as a buffer and convert to string
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const fileContent = buffer.toString("utf-8");
 
     // Split content into chunks (simplified for demonstration)
-    const chunks = splitIntoChunks(fileContent);
+    const chunks = splitIntoChunks(fileContent, 1000);
     const totalChunks = chunks.length;
 
     // Process each chunk and update progress
@@ -131,7 +154,46 @@ async function vectorizeDocument(documentId: string, filePath: string) {
   }
 }
 
-function splitIntoChunks(text: string, chunkSize: number = 1000): string[] {
+async function vectorizeWebPage(webPageId: string, content: string) {
+  try {
+    // Initialize progress
+    vectorizationProgress.set(webPageId, 0);
+
+    // Split content into chunks (simplified for demonstration)
+    const chunks = splitIntoChunks(content, 1000);
+    const totalChunks = chunks.length;
+
+    // Process each chunk and update progress
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i];
+
+      // Generate embedding using OpenAI
+      const embedding = await generateEmbedding(chunk);
+
+      // Store vector in database
+      await prisma.vector.create({
+        data: {
+          content: chunk,
+          embedding: embedding,
+          webPageId: webPageId,
+        },
+      });
+
+      // Update progress
+      const progress = Math.round(((i + 1) / totalChunks) * 100);
+      vectorizationProgress.set(webPageId, progress);
+    }
+
+    // Set final progress to 100%
+    vectorizationProgress.set(webPageId, 100);
+  } catch (error) {
+    console.error("Error during web page vectorization:", error);
+    // Set progress to indicate failure
+    vectorizationProgress.set(webPageId, -1);
+  }
+}
+
+function splitIntoChunks(text: string, chunkSize: number): string[] {
   const chunks = [];
   for (let i = 0; i < text.length; i += chunkSize) {
     chunks.push(text.slice(i, i + chunkSize));

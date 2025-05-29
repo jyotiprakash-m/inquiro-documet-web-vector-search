@@ -59,8 +59,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Trigger vectorization process (will be implemented in the next step)
-    // This would typically be done asynchronously
+    //todo: call vectorize api here
 
     return NextResponse.json({
       success: true,

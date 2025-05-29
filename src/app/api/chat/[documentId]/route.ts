@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { OpenAI } from "openai";
 import { prisma } from "@/lib/prisma";
 
@@ -8,10 +8,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { documentId: string } }
-) {
+export async function POST(request: NextRequest) {
   try {
     const { userId } = await auth();
 
@@ -19,7 +16,8 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { documentId } = await params;
+    const url = new URL(request.url);
+    const documentId = url.pathname.split("/").pop();
     const { messages } = await request.json();
     const lastMessage = messages[messages.length - 1].content;
 
