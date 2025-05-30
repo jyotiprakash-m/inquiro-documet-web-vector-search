@@ -198,7 +198,7 @@ docker run -d \
 - Implement rate limiting and abuse prevention for API endpoints
 - Add support for custom AI models or self-hosted embeddings
 
-## filtered future goals
+## Filtered future goals
 
 - 1.⁠ ⁠Fix the error through (Note: Return the response with status code.) ✅
 - 2.⁠ ⁠Support multiple file type (at least docx, txt, ppt)
