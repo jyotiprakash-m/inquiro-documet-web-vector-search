@@ -208,3 +208,4 @@ docker run -d \
 - 8.⁠ ⁠Export or download chat history
 - 9.⁠ ⁠Add rate limiting
 - 10.⁠ ⁠Add token based (payment option enabled) – SaaS Product (written in red)
+- 11. User can select a model for chat conversation
