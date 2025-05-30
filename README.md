@@ -1,6 +1,6 @@
 # Next.js Document Search Application
 
-This application allows users to upload documents or ingest web pages, then chat with the content using AI. The application uses OpenAI's embeddings for document search and the Vercel AI SDK for streaming responses.
+This application allows users to upload documents or ingest web pages, then chat with the content using AI. The application uses OpenAI's embeddings for document search.
 
 ## Features
 
@@ -13,12 +13,12 @@ This application allows users to upload documents or ingest web pages, then chat
 
 ## Tech Stack
 
-- **Frontend**: Next.js 14 with TypeScript and Tailwind CSS
+- **Frontend**: Next.js 15 with TypeScript and Tailwind CSS
 - **Authentication**: Clerk
 - **Database**: PostgreSQL with pgvector extension
 - **ORM**: Prisma
 - **AI**: OpenAI API for embeddings and chat completions
-- **Streaming**: Vercel AI SDK for streaming responses
+- **Docker**: Create standalone docker image
 
 ## Getting Started
 
