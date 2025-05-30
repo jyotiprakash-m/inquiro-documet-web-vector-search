@@ -199,7 +199,7 @@ docker run -d \
 ## Filtered future goals
 
 - 1 ⁠Fix the error through (Note: Return the response with status code.) ✅
-- 2⁠ ⁠Support multiple file type (at least docx, txt, ppt)
+- 2⁠ ⁠Support multiple file type (at least docx, doc, txt, ppt) ✅
 - 3⁠ ⁠Batch document upload
 - 4⁠ ⁠Batch or multiple related URLs
 - 5 ⁠Store the chat information
@@ -209,3 +209,4 @@ docker run -d \
 - 9⁠ ⁠Add rate limiting
 - 10⁠ ⁠Add token based (payment option enabled) – SaaS Product (written in red)
 - 11 User can select a model for chat conversation
+- 12 Add delete feature (Cascading) ✅

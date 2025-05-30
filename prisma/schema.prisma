@@ -31,7 +31,7 @@ model Vector {
   document   Document? @relation(fields: [documentId], references: [id], onDelete: Cascade)
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
-  WebPage    WebPage?  @relation(fields: [webPageId], references: [id])
+  WebPage    WebPage?  @relation(fields: [webPageId], references: [id], onDelete: Cascade)
   webPageId  String?
 
   @@index([documentId])

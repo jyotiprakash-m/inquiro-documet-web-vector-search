@@ -41,3 +41,47 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+// Delete a webpage
+export async function DELETE(request: NextRequest) {
+  try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const url = new URL(request.url);
+    const webPageId = url.pathname.split("/").pop();
+
+    // Get webpage from database
+    const webpage = await prisma.webPage.findUnique({
+      where: { id: webPageId },
+    });
+
+    if (!webpage) {
+      return NextResponse.json(
+        { error: "Document not found" },
+        { status: 404 }
+      );
+    }
+
+    // Check if webpage belongs to the user
+    if (webpage.userId !== userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Delete the webpage
+    await prisma.webPage.delete({
+      where: { id: webPageId },
+    });
+
+    return NextResponse.json({ message: "Webpage deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting webpage:", error);
+    return NextResponse.json(
+      { error: "Failed to delete webpage" },
+      { status: 500 }
+    );
+  }
+}

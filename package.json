@@ -16,6 +16,7 @@
     "@neondatabase/serverless": "^1.0.0",
     "@prisma/client": "^6.8.2",
     "@vercel/postgres": "^0.10.0",
+    "lucide-react": "^0.511.0",
     "mammoth": "^1.9.1",
     "minio": "^8.0.5",
     "next": "15.3.2",
