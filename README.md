@@ -198,14 +198,14 @@ docker run -d \
 
 ## Filtered future goals
 
-- 1.⁠ ⁠Fix the error through (Note: Return the response with status code.) ✅
-- 2.⁠ ⁠Support multiple file type (at least docx, txt, ppt)
-- 3.⁠ ⁠Batch document upload
-- 4.⁠ ⁠Batch or multiple related URLs
-- 5.⁠ ⁠Store the chat information
-- 6.⁠ ⁠Document or URL sharing feature (can I get the userId of the clerk from email address)
-- 7.⁠ ⁠Improve the vector search
-- 8.⁠ ⁠Export or download chat history
-- 9.⁠ ⁠Add rate limiting
-- 10.⁠ ⁠Add token based (payment option enabled) – SaaS Product (written in red)
-  -11. User can select a model for chat conversation
+- 1 ⁠Fix the error through (Note: Return the response with status code.) ✅
+- 2⁠ ⁠Support multiple file type (at least docx, txt, ppt)
+- 3⁠ ⁠Batch document upload
+- 4⁠ ⁠Batch or multiple related URLs
+- 5 ⁠Store the chat information
+- 6⁠ ⁠Document or URL sharing feature (can I get the userId of the clerk from email address)
+- 7⁠ ⁠Improve the vector search
+- 8 ⁠Export or download chat history
+- 9⁠ ⁠Add rate limiting
+- 10⁠ ⁠Add token based (payment option enabled) – SaaS Product (written in red)
+- 11 User can select a model for chat conversation
