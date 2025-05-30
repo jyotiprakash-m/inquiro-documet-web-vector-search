@@ -185,3 +185,28 @@ docker run -d \
 - Add document sharing functionality
 - Improve vector search with hybrid search techniques
 - Add document summarization feature
+- Implement hybrid semantic + keyword search (see [Postgres Hybrid Search with pgvector](https://supabase.com/blog/hybrid-search-text-embeddings-postgres))
+- Add user roles and permissions (admin, editor, viewer)
+- Enable document versioning and history
+- Add OCR support for scanned PDFs and images
+- Integrate notifications for completed vectorization or chat responses
+- Add analytics dashboard for document usage and queries
+- Support multi-language document ingestion and search
+- Add export/download options for chat history and document insights
+- Improve error handling and user feedback throughout the app
+- Add mobile-friendly and accessible UI enhancements
+- Implement rate limiting and abuse prevention for API endpoints
+- Add support for custom AI models or self-hosted embeddings
+
+## filtered future goals
+
+- 1.⁠ ⁠Fix the error through (Note: Return the response with status code.) ✅
+- 2.⁠ ⁠Support multiple file type (at least docx, txt, ppt)
+- 3.⁠ ⁠Batch document upload
+- 4.⁠ ⁠Batch or multiple related URLs
+- 5.⁠ ⁠Store the chat information
+- 6.⁠ ⁠Document or URL sharing feature (can I get the userId of the clerk from email address)
+- 7.⁠ ⁠Improve the vector search
+- 8.⁠ ⁠Export or download chat history
+- 9.⁠ ⁠Add rate limiting
+- 10.⁠ ⁠Add token based (payment option enabled) – SaaS Product (written in red)
