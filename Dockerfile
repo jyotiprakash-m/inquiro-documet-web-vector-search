@@ -1,7 +1,7 @@
 FROM node:20.17.0-alpine
 
 # Install Python and Poppler
-RUN apk add --no-cache python3 py3-pip poppler-utils
+RUN apk add --no-cache python3 py3-pip poppler-utils antiword
 
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \

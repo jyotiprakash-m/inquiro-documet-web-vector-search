@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { OpenAI } from "openai";
 import { promisify } from "node:util";
 import { Readable } from "node:stream";
+import mammoth from "mammoth";
 const execAsync = promisify(exec);
 
 // Initialize OpenAI client
@@ -98,7 +99,7 @@ export async function POST(request: NextRequest) {
     if (isWebPage && content) {
       vectorizeWebPage(document.id, content);
     } else if (!isWebPage && document.fileUrl) {
-      vectorizeDocument(document.id, document.fileUrl);
+      vectorizeDocument(document.id, document.fileUrl, document.fileType);
     }
 
     return NextResponse.json({ success: true });
@@ -111,7 +112,11 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function vectorizeDocument(documentId: string, documentUrl: string) {
+async function vectorizeDocument(
+  documentId: string,
+  documentUrl: string,
+  documentType: string
+) {
   try {
     // Initialize progress
     vectorizationProgress.set(documentId, 0);
@@ -134,10 +139,30 @@ async function vectorizeDocument(documentId: string, documentUrl: string) {
       throw new Error("Downloaded file is empty");
     }
 
+    console.log(`Document type: ${documentType}`);
+    let extractedText: string = "";
     // Extract text using pdftotext with buffer input
-    const extractedText = await extractTextFromPdfBuffer(
-      Buffer.from(pdfBuffer)
-    );
+
+    switch (documentType) {
+      case "application/pdf":
+        extractedText = await extractTextFromPdfBuffer(Buffer.from(pdfBuffer));
+        break;
+
+      case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+        extractedText = await extractTextFromDocxBuffer(Buffer.from(pdfBuffer));
+        break;
+
+      case "text/plain":
+        extractedText = await extractTextFromTxtBuffer(Buffer.from(pdfBuffer));
+        break;
+
+      case "application/msword":
+        extractedText = await extractTextFromDocBuffer(Buffer.from(pdfBuffer));
+        break;
+
+      default:
+        throw new Error("Unsupported document type");
+    }
 
     // Split content into chunks (simplified for demonstration)
     const chunks = splitIntoChunks(extractedText.trim(), 1000);
@@ -290,5 +315,65 @@ async function extractTextFromPdfBuffer(pdfBuffer: Buffer): Promise<string> {
         )
       );
     }
+  });
+}
+export async function extractTextFromDocxBuffer(
+  docxBuffer: Buffer
+): Promise<string> {
+  try {
+    const result = await mammoth.extractRawText({ buffer: docxBuffer });
+    return result.value; // The extracted text
+  } catch (error) {
+    throw new Error(
+      `Failed to extract text from DOCX: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
+  }
+}
+export async function extractTextFromTxtBuffer(
+  txtBuffer: Buffer
+): Promise<string> {
+  try {
+    return txtBuffer.toString("utf-8"); // or "ascii" if needed
+  } catch (error) {
+    throw new Error(
+      `Failed to extract text from TXT: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
+  }
+}
+
+export async function extractTextFromDocBuffer(
+  docBuffer: Buffer
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const bufferStream = new Readable();
+    bufferStream.push(docBuffer);
+    bufferStream.push(null);
+
+    const antiword = spawn("antiword", ["-"]);
+
+    const chunks: Buffer[] = [];
+    antiword.stdout.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
+
+    antiword.on("close", (code) => {
+      if (code !== 0) {
+        reject(new Error(`antiword exited with code ${code}`));
+        return;
+      }
+      resolve(Buffer.concat(chunks).toString("utf-8"));
+    });
+
+    antiword.on("error", (err) => {
+      reject(new Error(`antiword error: ${err.message}`));
+    });
+
+    antiword.stderr.on("data", (data) => {
+      console.error(`antiword stderr: ${data}`);
+    });
+
+    bufferStream.pipe(antiword.stdin);
   });
 }
