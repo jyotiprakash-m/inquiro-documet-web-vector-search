@@ -68,13 +68,13 @@ docker pull pgvector/pgvector:pg16
 
 ```
 docker run -d \
-  --name pgvector-db \
-  -e POSTGRES_USER=inquiro \
-  -e POSTGRES_PASSWORD=inquiro \
-  -e POSTGRES_DB=inquiro \
-  -p 9090:5432 \
-  -v pgvector_data:/var/lib/postgresql/data \
-  pgvector/pgvector:pg16
+--name pgvector-db \
+-e POSTGRES_USER=inquiro \
+-e POSTGRES_PASSWORD=inquiro \
+-e POSTGRES_DB=inquiro \
+-p 9090:5432 \
+-v pgvector_data:/var/lib/postgresql/data \
+pgvector/pgvector:pg16
 
 ```
 
@@ -95,17 +95,17 @@ docker run -d \
 
 3. Generate prisma type
 
-```
-bunx prisma generate
-```
+   ```
+   bunx prisma generate
+   ```
 
-3. Run the development server:
+4. Run the development server:
 
    ```
    bun run dev
    ```
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser.
+5. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## Docker Instructions
 
@@ -157,8 +157,6 @@ docker run -d \
 4. Wait for the vectorization process to complete
 5. Click on a document to open the chat interface
 6. Ask questions about the document content
-
-## API Endpoints
 
 ## API Endpoints
 
