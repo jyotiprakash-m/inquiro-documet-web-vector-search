@@ -10,22 +10,25 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get all documents for the current user
-    const documents = await prisma.document.findMany({
+    // Get all batchResources for the current user
+    const batchResources = await prisma.batchResource.findMany({
       where: {
         userId: userId,
-        batchResourceId: null, // Ensure we only get documents without a batch resource
+      },
+      include: {
+        documents: true,
+        webPages: true,
       },
       orderBy: {
         createdAt: "desc",
       },
     });
 
-    return NextResponse.json({ documents });
+    return NextResponse.json({ batchResources });
   } catch (error) {
-    console.error("Error fetching documents:", error);
+    console.error("Error fetching batchResources:", error);
     return NextResponse.json(
-      { error: "Failed to fetch documents" },
+      { error: "Failed to fetch batchResources" },
       { status: 500 }
     );
   }

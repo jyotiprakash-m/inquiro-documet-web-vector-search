@@ -7,12 +7,14 @@ type UploadWebPageOptions = {
   url: string;
   userId: string;
   baseUrl: string;
+  batchResourceId: string;
 };
 
 type UploadDocumentOptions = {
   file: File;
   userId: string;
   baseUrl: string;
+  batchResourceId: string;
 };
 const {
   MINIO_ENDPOINT,
@@ -75,6 +77,15 @@ export async function POST(request: NextRequest) {
     const urls = urlsRaw ? JSON.parse(urlsRaw) : [];
 
     const resultMap: Record<string, string> = {};
+    // create a resource entry in the database
+    const batchResource = await prisma.batchResource.create({
+      data: {
+        name,
+        type,
+        userId,
+        totalFiles: files.length + urls.length,
+      },
+    });
 
     if (type === "document" || type === "both") {
       for (let i = 0; i < files.length; i++) {
@@ -85,6 +96,7 @@ export async function POST(request: NextRequest) {
           file,
           userId,
           baseUrl,
+          batchResourceId: batchResource.id,
         });
 
         if (result.success && result.documentId) {
@@ -106,6 +118,7 @@ export async function POST(request: NextRequest) {
           url,
           userId,
           baseUrl,
+          batchResourceId: batchResource.id,
         });
 
         if (result.success && result.webPageId) {
@@ -118,16 +131,6 @@ export async function POST(request: NextRequest) {
         }
       }
     }
-
-    // create a resource entry in the database
-    await prisma.batchResource.create({
-      data: {
-        name,
-        type,
-        userId,
-        totalFiles: files.length + urls.length,
-      },
-    });
 
     return NextResponse.json({
       success: true,
@@ -149,6 +152,7 @@ export async function uploadDocument({
   file,
   userId,
   baseUrl,
+  batchResourceId,
 }: UploadDocumentOptions): Promise<{
   success: boolean;
   documentId?: string;
@@ -191,6 +195,7 @@ export async function uploadDocument({
         fileType: file.type,
         fileSize: file.size,
         userId,
+        batchResourceId,
       },
     });
 
@@ -218,6 +223,7 @@ export async function uploadWebPage({
   url,
   userId,
   baseUrl,
+  batchResourceId,
 }: UploadWebPageOptions): Promise<{
   success: boolean;
   webPageId?: string;
@@ -251,6 +257,7 @@ export async function uploadWebPage({
         url,
         title,
         userId,
+        batchResourceId,
       },
     });
 

@@ -1,5 +1,6 @@
 import React from "react";
 import { Trash2 } from "lucide-react";
+import { Button } from "./ui/button";
 type DeleteResourceProps = {
   id: string;
   type: string;
@@ -33,12 +34,9 @@ const DeleteResource: React.FC<DeleteResourceProps> = ({ id, type, title }) => {
   };
 
   return (
-    <button
-      onClick={handleDelete}
-      className=" mr-2 relative p-2 bg-red-600 text-white rounded hover:bg-red-700 transition z-10"
-    >
+    <Button variant="destructive" onClick={handleDelete}>
       <Trash2 className="w-4 h-4" />
-    </button>
+    </Button>
   );
 };
 

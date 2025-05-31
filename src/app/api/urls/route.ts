@@ -91,6 +91,7 @@ export async function GET(request: NextRequest) {
     const documents = await prisma.webPage.findMany({
       where: {
         userId: userId,
+        batchResourceId: null, // Ensure we only get web pages, not batch resources
       },
       orderBy: {
         createdAt: "desc",

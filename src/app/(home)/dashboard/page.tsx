@@ -5,7 +5,16 @@ import FileUpload from "@/components/FileUpload";
 import UrlUpload from "@/components/UrlUpload";
 import DeleteResource from "@/components/DeleteResource";
 import BatchUpload from "@/components/BatchUpload";
-import { Minimize2, Upload } from "lucide-react";
+import {
+  CircleArrowRight,
+  Expand,
+  Minimize2,
+  PanelTopClose,
+  Upload,
+} from "lucide-react";
+import { WebPage } from "@prisma/client";
+import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
 
 interface Document {
   id: string;
@@ -14,24 +23,43 @@ interface Document {
   fileSize: number;
   createdAt: string;
 }
+interface BatchResourceMerge {
+  name: string;
+  id: string;
+  description: string | null;
+  userId: string;
+  type: string;
+  totalFiles: number;
+  createdAt: Date;
+  updatedAt: Date;
+  documents?: Document[];
+  webPages?: WebPage[];
+}
 
 export default function Dashboard() {
+  const router = useRouter();
   const [documents, setDocuments] = useState<Document[]>([]);
+  const [batchResources, setBatchResources] = useState<BatchResourceMerge[]>(
+    []
+  );
   const [loading, setLoading] = useState(true);
   const [showUpload, setShowUpload] = useState(false);
   const [showUrl, setShowUrl] = useState(false);
   const [showBatchUpload, setShowBatchUpload] = useState(false);
-  const router = useRouter();
+  const [expandedResourceId, setExpandedResourceId] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
     async function fetchDocuments() {
       try {
+        // Fetch documents
         const response = await fetch("/api/documents");
         if (response.ok) {
           const data = await response.json();
           setDocuments(data.documents);
         }
-        // get urls
+        // Fetch urls
         const urlResponse = await fetch("/api/urls");
         const urlData = await urlResponse.json();
         if (urlResponse.ok) {
@@ -47,6 +75,12 @@ export default function Dashboard() {
             })),
           ]);
         }
+        // Fetch batch resources
+        const batchResponse = await fetch("/api/batchResources");
+        if (batchResponse.ok) {
+          const batchData = await batchResponse.json();
+          setBatchResources(batchData.batchResources);
+        }
       } catch (error) {
         console.error("Error fetching documents:", error);
       } finally {
@@ -56,7 +90,9 @@ export default function Dashboard() {
 
     fetchDocuments();
   }, []);
-
+  const toggleExpand = (id: string) => {
+    setExpandedResourceId((prev) => (prev === id ? null : id));
+  };
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`;
@@ -73,6 +109,7 @@ export default function Dashboard() {
   const handleDocumentClick = (documentId: string, type: string) => {
     router.push(`/chat/${type}/${documentId}`);
   };
+  console.log(batchResources);
 
   return (
     <div className="space-y-6">
@@ -150,7 +187,7 @@ export default function Dashboard() {
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-indigo-500 border-t-transparent" />
           <p className="mt-2 text-gray-500">Loading documents...</p>
         </div>
-      ) : documents.length === 0 ? (
+      ) : documents.length === 0 && batchResources.length === 0 ? (
         <div className="bg-white shadow rounded-lg p-6 text-center">
           <p className="text-gray-500 py-10">
             No documents uploaded yet. Upload your first document to get
@@ -159,63 +196,168 @@ export default function Dashboard() {
         </div>
       ) : (
         <div className="bg-white shadow rounded-lg overflow-hidden">
-          <ul className="divide-y divide-gray-200">
+          {documents.length > 0 && (
+            <div className="px-4 pt-4">
+              <h2 className="text-lg font-semibold text-gray-900">
+                Individual Resources
+              </h2>
+              <Separator />
+            </div>
+          )}
+          <ul className="divide-y divide-gray-200 mt-2">
             {documents.map((doc) => {
               const isUrl = doc.fileType === "text/html";
               const type = isUrl ? "webpage" : "document";
+
               return (
-                <div key={doc.id} className="flex items-center justify-between">
-                  <li
-                    key={doc.id}
-                    className="p-4 hover:bg-gray-50 cursor-pointer transition-colors w-full"
-                    onClick={() => handleDocumentClick(doc.id, type)}
-                    onKeyUp={(event) => {
-                      if (event.key === "Enter") {
-                        handleDocumentClick(doc.id, type);
-                      }
-                    }}
-                  >
-                    <div className="flex items-center space-x-4">
-                      <div className="text-2xl">
-                        {getFileIcon(doc.fileType)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">
-                          {doc.title}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {formatFileSize(doc.fileSize)} •{" "}
-                          {new Date(doc.createdAt).toLocaleDateString()},{" "}
-                          {new Date(doc.createdAt).toLocaleTimeString()} •{" "}
-                          {isUrl ? "Webpage" : doc.fileType}
-                        </p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <svg
-                          className="h-5 w-5 text-gray-400"
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
-                          aria-hidden="true"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      </div>
+                <li
+                  key={doc.id}
+                  className=" p-4 hover:bg-gray-50 cursor-pointer transition-colors"
+                  onClick={() => handleDocumentClick(doc.id, type)}
+                  onKeyUp={(event) => {
+                    if (event.key === "Enter") {
+                      handleDocumentClick(doc.id, type);
+                    }
+                  }}
+                >
+                  <div className="flex items-center space-x-4 flex-1 min-w-0">
+                    <div className="text-2xl">{getFileIcon(doc.fileType)}</div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {doc.title}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {formatFileSize(doc.fileSize)} •{" "}
+                        {new Date(doc.createdAt).toLocaleDateString()},{" "}
+                        {new Date(doc.createdAt).toLocaleTimeString()} •{" "}
+                        {isUrl ? "Webpage" : doc.fileType}
+                      </p>
                     </div>
-                  </li>
-                  <DeleteResource
-                    id={doc.id}
-                    title={doc.title}
-                    type={doc.fileType === "text/html" ? "urls" : "documents"}
-                  />
-                </div>
+                    <CircleArrowRight className="w-4 h-4 text-gray-500" />
+                  </div>
+
+                  <div className="flex items-center space-x-2 w-full justify-end mt-2">
+                    <DeleteResource
+                      id={doc.id}
+                      title={doc.title}
+                      type={type === "webpage" ? "urls" : "documents"}
+                    />
+                  </div>
+                </li>
               );
             })}
           </ul>
+
+          {batchResources.length > 0 && (
+            <div className="mt-6">
+              {batchResources.length > 0 && (
+                <div className="px-4 pt-3 pb-2">
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    Batch Resources
+                  </h2>
+                  <Separator />
+                </div>
+              )}
+              <ul className="divide-y divide-gray-200">
+                {batchResources.map((resource) => (
+                  <li
+                    key={resource.id}
+                    className="p-4 hover:bg-gray-50 transition-colors"
+                  >
+                    <div
+                      className="flex justify-between items-center cursor-pointer"
+                      onClick={() => router.push(`/chat/batch/${resource.id}`)}
+                    >
+                      <div className="flex items-center space-x-4">
+                        <div className="text-2xl">📂</div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {resource.name}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {new Date(resource.createdAt).toLocaleDateString()},{" "}
+                            {new Date(resource.createdAt).toLocaleTimeString()}{" "}
+                            •{" "}
+                            {resource.type === "document"
+                              ? "Document"
+                              : resource.type === "url"
+                              ? "Webpage"
+                              : "Mixed"}{" "}
+                            • {resource.totalFiles} Resources
+                          </p>
+                        </div>
+                      </div>
+                      <CircleArrowRight className="w-4 h-4 text-gray-500 " />
+                    </div>
+
+                    <div className="flex justify-end items-center mt-2 space-x-2">
+                      <Button
+                        variant="ghost"
+                        onClick={() => toggleExpand(resource.id)}
+                      >
+                        {expandedResourceId === resource.id ? (
+                          <PanelTopClose className="h-4 w-4" />
+                        ) : (
+                          <Expand className="w-4 h-4" />
+                        )}
+                      </Button>
+                      <DeleteResource
+                        id={resource.id}
+                        title={resource.name}
+                        type="batchResources"
+                      />
+                    </div>
+
+                    {expandedResourceId === resource.id && (
+                      <div className="bg-gray-50 w-full px-6 py-4 text-sm text-gray-700 mt-2 rounded-md">
+                        {(resource.documents ?? []).length > 0 && (
+                          <div className="mb-4">
+                            <p className="font-semibold mb-2">Documents</p>
+                            <ul className="list-disc ml-5 space-y-1">
+                              {resource?.documents?.map((doc) => (
+                                <li key={doc.id}>
+                                  <span className="font-medium">
+                                    {doc.title}
+                                  </span>{" "}
+                                  • {doc.fileType} •{" "}
+                                  {Math.round(doc.fileSize / 1024)} KB
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {(resource.webPages ?? []).length > 0 && (
+                          <div>
+                            <p className="font-semibold mb-2">Web Pages</p>
+                            <ul className="list-disc ml-5 space-y-1">
+                              {resource?.webPages?.map((page) => (
+                                <li key={page.id}>
+                                  <a
+                                    href={page.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 underline"
+                                  >
+                                    {page.title || page.url}
+                                  </a>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {(resource?.documents?.length ?? 0) === 0 &&
+                          (resource?.webPages?.length ?? 0) === 0 && (
+                            <p className="text-gray-500">No items available.</p>
+                          )}
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
     </div>
