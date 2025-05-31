@@ -1,11 +1,11 @@
 "use client";
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import FileUpload from "@/components/FileUpload";
 import UrlUpload from "@/components/UrlUpload";
-import Image from "next/image";
 import DeleteResource from "@/components/DeleteResource";
+import BatchUpload from "@/components/BatchUpload";
+import { Minimize2, Upload } from "lucide-react";
 
 interface Document {
   id: string;
@@ -20,6 +20,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [showUpload, setShowUpload] = useState(false);
   const [showUrl, setShowUrl] = useState(false);
+  const [showBatchUpload, setShowBatchUpload] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -84,16 +85,13 @@ export default function Dashboard() {
             className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
           >
             {showUpload ? (
-              "Hide Upload"
+              <span className="flex items-center gap-2">
+                <Minimize2 className="w-4 h-4" />
+                Document
+              </span>
             ) : (
-              <span>
-                <Image
-                  src="/upload.png"
-                  width={18}
-                  height={18}
-                  alt="Upload image"
-                  className="inline-block mr-1"
-                />{" "}
+              <span className="flex items-center gap-2">
+                <Upload className="w-4 h-4" />
                 Document
               </span>
             )}
@@ -104,17 +102,31 @@ export default function Dashboard() {
             className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
           >
             {showUrl ? (
-              "Hide Url"
-            ) : (
-              <span>
-                <Image
-                  src="/upload.png"
-                  width={18}
-                  height={18}
-                  alt="Upload image"
-                  className="inline-block mr-1"
-                />{" "}
+              <span className="flex items-center gap-2">
+                <Minimize2 className="w-4 h-4" />
                 URL
+              </span>
+            ) : (
+              <span className="flex items-center gap-2">
+                <Upload className="w-4 h-4" />
+                URL
+              </span>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowBatchUpload(!showBatchUpload)}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+          >
+            {showBatchUpload ? (
+              <span className="flex items-center gap-2">
+                <Minimize2 className="w-4 h-4" />
+                Batch
+              </span>
+            ) : (
+              <span className="flex items-center gap-2">
+                <Upload className="w-4 h-4" />
+                Batch
               </span>
             )}
           </button>
@@ -131,6 +143,7 @@ export default function Dashboard() {
           <UrlUpload />
         </div>
       )}
+      {showBatchUpload && <BatchUpload />}
 
       {loading ? (
         <div className="text-center py-10">

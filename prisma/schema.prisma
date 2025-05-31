@@ -11,16 +11,19 @@ datasource db {
 }
 
 model Document {
-  id          String   @id @default(cuid())
-  title       String
-  description String?
-  fileUrl     String
-  fileType    String
-  fileSize    Int
-  userId      String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  vectors     Vector[]
+  id              String         @id @default(cuid())
+  title           String
+  description     String?
+  fileUrl         String
+  fileType        String
+  fileSize        Int
+  userId          String
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  vectors         Vector[]
+  batchResourceId String?
+  batchResource   BatchResource? @relation(fields: [batchResourceId], references: [id], onDelete: Cascade)
+  Chat            Chat[]
 }
 
 model Vector {
@@ -35,15 +38,58 @@ model Vector {
   webPageId  String?
 
   @@index([documentId])
+  @@index([webPageId])
 }
 
 model WebPage {
-  id          String   @id @default(cuid())
-  url         String
-  title       String
+  id              String         @id @default(cuid())
+  url             String
+  title           String
+  description     String?
+  userId          String
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  vectors         Vector[]
+  batchResourceId String?
+  batchResource   BatchResource? @relation(fields: [batchResourceId], references: [id], onDelete: Cascade)
+  Chat            Chat[]
+}
+
+model BatchResource {
+  id          String     @id @default(cuid())
+  name        String
   description String?
   userId      String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  vectors     Vector[]
+  type        String // e.g., 'document', 'url', 'both'
+  totalFiles  Int
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  webPages    WebPage[]
+  documents   Document[]
+  Chat        Chat[]
+}
+
+model Chat {
+  id              String         @id @default(cuid())
+  batchResourceId String?
+  batchResource   BatchResource? @relation(fields: [batchResourceId], references: [id], onDelete: Cascade)
+  documentId      String?
+  document        Document?      @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  webPageId       String?
+  webPage         WebPage?       @relation(fields: [webPageId], references: [id], onDelete: Cascade)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  Message         Message[]
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  chatId    String
+  chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  content   String
+  role      String // e.g., 'user', 'assistant'
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([chatId])
 }
