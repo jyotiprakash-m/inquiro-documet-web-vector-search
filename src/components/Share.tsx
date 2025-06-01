@@ -33,6 +33,8 @@ export default function Share({ type, resourceId }: ShareProps) {
     });
 
     // We are going to store the share
+    // localhost:3000/chat/[share]/[shareId]
+
     setShareUrl(result.encodedUrl);
   };
 

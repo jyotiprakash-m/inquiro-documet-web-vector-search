@@ -24,6 +24,7 @@ model Document {
   batchResourceId String?
   batchResource   BatchResource? @relation(fields: [batchResourceId], references: [id], onDelete: Cascade)
   chats           Chat[]
+  Share           Share[]
 }
 
 model Vector {
@@ -53,6 +54,7 @@ model WebPage {
   batchResourceId String?
   batchResource   BatchResource? @relation(fields: [batchResourceId], references: [id], onDelete: Cascade)
   chats           Chat[]
+  Share           Share[]
 }
 
 model BatchResource {
@@ -67,6 +69,7 @@ model BatchResource {
   webPages    WebPage[]
   documents   Document[]
   chats       Chat[]
+  Share       Share[]
 }
 
 model Chat {
@@ -94,4 +97,33 @@ model Message {
   updatedAt DateTime @updatedAt
 
   @@index([chatId])
+}
+
+model Share {
+  id              String         @id @default(cuid())
+  type            String
+  originalUrl     String
+  shareUrl        String         @unique
+  shareBy         String
+  allocatedCounts Int            @default(0)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  batchResourceId String?
+  batchResource   BatchResource? @relation(fields: [batchResourceId], references: [id], onDelete: Cascade)
+  webPageId       String?
+  webPage         WebPage?       @relation(fields: [webPageId], references: [id], onDelete: Cascade)
+  documentId      String?
+  document        Document?      @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  shareAccesses   ShareAccess[]
+}
+
+model ShareAccess {
+  id        String   @id @default(cuid())
+  shareId   String
+  share     Share    @relation(fields: [shareId], references: [id], onDelete: Cascade)
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([shareId])
 }

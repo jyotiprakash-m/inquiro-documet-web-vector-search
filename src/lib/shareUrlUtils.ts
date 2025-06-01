@@ -44,7 +44,14 @@ export function generateShareUrl({
 }
 
 // Decode share URL
-export function decodeShareUrl(encoded: string): any {
+export function decodeShareUrl(encoded: string): {
+  t: "document" | "webpage" | "batchResource";
+  r: string;
+  s: string;
+  e: string;
+  m: number | null;
+  ts: string;
+} {
   try {
     // Pad the string with '=' to make its length a multiple of 4
     let base64 = encoded.replace(/-/g, "+").replace(/_/g, "/");
