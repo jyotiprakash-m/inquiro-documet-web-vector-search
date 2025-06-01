@@ -59,19 +59,19 @@ export default function Dashboard() {
           const data = await response.json();
           setDocuments(data.documents);
         }
-        // Fetch urls
-        const urlResponse = await fetch("/api/urls");
-        const urlData = await urlResponse.json();
-        if (urlResponse.ok) {
+        // Fetch webpages
+        const webpageResponse = await fetch("/api/webpages");
+        const webpageData = await webpageResponse.json();
+        if (webpageResponse.ok) {
           setDocuments((prevDocs) => [
             ...prevDocs,
             // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-            ...urlData.documents.map((url: any) => ({
-              id: url.id,
-              title: url.title,
+            ...webpageData.documents.map((webpage: any) => ({
+              id: webpage.id,
+              title: webpage.title,
               fileType: "text/html",
               fileSize: 0, // URLs don't have a file size
-              createdAt: url.createdAt,
+              createdAt: webpage.createdAt,
             })),
           ]);
         }
@@ -240,7 +240,7 @@ export default function Dashboard() {
                     <DeleteResource
                       id={doc.id}
                       title={doc.title}
-                      type={type === "webpage" ? "urls" : "documents"}
+                      type={type === "webpage" ? "webpages" : "documents"}
                     />
                   </div>
                 </li>
@@ -266,7 +266,9 @@ export default function Dashboard() {
                   >
                     <div
                       className="flex justify-between items-center cursor-pointer"
-                      onClick={() => router.push(`/chat/batch/${resource.id}`)}
+                      onClick={() =>
+                        router.push(`/chat/batchResource/${resource.id}`)
+                      }
                     >
                       <div className="flex items-center space-x-4">
                         <div className="text-2xl">📂</div>
@@ -280,7 +282,7 @@ export default function Dashboard() {
                             •{" "}
                             {resource.type === "document"
                               ? "Document"
-                              : resource.type === "url"
+                              : resource.type === "webpage"
                               ? "Webpage"
                               : "Mixed"}{" "}
                             • {resource.totalFiles} Resources

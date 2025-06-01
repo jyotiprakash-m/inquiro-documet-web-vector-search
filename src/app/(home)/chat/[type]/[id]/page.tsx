@@ -1,54 +1,61 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+
+type ChatType = "batchResource" | "document" | "webpage";
 
 export default function ChatPage() {
-  const params = useParams();
-  const webPageId = params.webPageId as string;
+  const { type, id } = useParams() as { type: ChatType; id: string };
 
-  const [webPageTitle, setWebPageTitle] = useState("");
-  const [messages, setMessages] = useState([
+  const [title, setTitle] = useState("");
+  type Message = {
+    id: string;
+    role: "assistant" | "user";
+    content: string;
+  };
+
+  const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
       role: "assistant",
-      content: `Hello! I'm your webPage assistant. Ask me anything about "${webPageTitle}".`,
+      content: `Hello! I'm your assistant. Ask me anything.`,
     },
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Fetch webPage info on mount
+  // Fetch metadata for batch/document/webpage
   useEffect(() => {
-    async function fetchwebPageInfo() {
+    async function fetchInfo() {
       try {
-        const response = await fetch(`/api/urls/${webPageId}`);
-        if (response.ok) {
-          const data = await response.json();
-          setWebPageTitle(data.webpage.title);
-          setMessages([
-            {
-              id: "welcome",
-              role: "assistant",
-              content: `Hello! I'm your webPage assistant. Ask me anything about "${data.webpage.title}"`,
-            },
-          ]);
-        }
-      } catch (error) {
-        console.error("Error fetching webPage info:", error);
+        const res = await fetch(`/api/${type}s/${id}`);
+        if (!res.ok) throw new Error("Fetch failed");
+        const data = await res.json();
+        const name = data[`${type}`]?.name
+          ? data[`${type}`]?.name
+          : data[`${type}`]?.title;
+
+        setTitle(name);
+        setMessages([
+          {
+            id: "welcome",
+            role: "assistant",
+            content: `Hello! I'm your ${type} assistant. Ask me anything about "${name}".`,
+          },
+        ]);
+      } catch (err) {
+        console.error("Error fetching info:", err);
       }
     }
 
-    if (webPageId) {
-      fetchwebPageInfo();
-    }
-  }, [webPageId]);
+    if (type && id) fetchInfo();
+  }, [type, id]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -64,11 +71,9 @@ export default function ChatPage() {
     setIsLoading(true);
 
     try {
-      const res = await fetch(`/api/chat/webpage/${webPageId}`, {
+      const res = await fetch(`/api/chat/${type}/${id}`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt: input,
           messages: [...messages, userMessage],
@@ -76,16 +81,15 @@ export default function ChatPage() {
       });
 
       const data = await res.json();
-
       const assistantMessage = {
         id: crypto.randomUUID(),
         role: "assistant" as const,
-        content: data.response || "Sorry, I couldn't generate a response.",
+        content: data.response ?? "Sorry, no response available.",
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
-    } catch (error) {
-      console.error("Error sending message:", error);
+    } catch (err) {
+      console.error("Error:", err);
     } finally {
       setInput("");
       setIsLoading(false);
@@ -93,7 +97,7 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-6rem)]">
+    <div className="flex flex-col h-[calc(100vh-7rem)]">
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((message) => (
           <div
@@ -118,21 +122,18 @@ export default function ChatPage() {
           <div className="flex justify-start">
             <div className="max-w-[80%] rounded-lg px-4 py-2 bg-gray-200 text-gray-800">
               <div className="flex space-x-2">
-                <div className="w-2 h-2 rounded-full bg-gray-500 animate-bounce" />
-                <div
-                  className="w-2 h-2 rounded-full bg-gray-500 animate-bounce"
-                  style={{ animationDelay: "0.2s" }}
-                />
-                <div
-                  className="w-2 h-2 rounded-full bg-gray-500 animate-bounce"
-                  style={{ animationDelay: "0.4s" }}
-                />
+                {[0, 0.2, 0.4].map((delay, i) => (
+                  <div
+                    key={i}
+                    className="w-2 h-2 rounded-full bg-gray-500 animate-bounce"
+                    style={{ animationDelay: `${delay}s` }}
+                  />
+                ))}
               </div>
             </div>
           </div>
         )}
 
-        {/* This empty div helps scroll to bottom */}
         <div ref={messagesEndRef} />
       </div>
 
@@ -142,7 +143,7 @@ export default function ChatPage() {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={`Ask a question about "${webPageTitle}"...`}
+            placeholder={`Ask a question about "${title}"...`}
             className="flex-1 border rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
           <button
