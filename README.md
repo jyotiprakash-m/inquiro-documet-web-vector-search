@@ -200,9 +200,9 @@ docker run -d \
 
 - 1 ⁠Fix the error through (Note: Return the response with status code.) ✅
 - 2⁠ ⁠Support multiple file type (at least docx, doc, txt, ppt) ✅
-- 3⁠ ⁠Batch document upload
-- 4⁠ ⁠Batch or multiple related URLs
-- 5 ⁠Store the chat information
+- 3⁠ ⁠Batch document upload ✅
+- 4⁠ ⁠Batch or multiple related URLs ✅
+- 5 ⁠Store the chat information ✅
 - 6⁠ ⁠Document or URL sharing feature (can I get the userId of the clerk from email address)
 - 7⁠ ⁠Improve the vector search
 - 8 ⁠Export or download chat history

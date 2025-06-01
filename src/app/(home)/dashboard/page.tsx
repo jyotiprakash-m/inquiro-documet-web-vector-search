@@ -15,6 +15,7 @@ import {
 import { WebPage } from "@prisma/client";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
+import Share from "@/components/Share";
 
 interface Document {
   id: string;
@@ -236,11 +237,16 @@ export default function Dashboard() {
                   </div>
 
                   <div className="flex items-center space-x-2 w-full justify-end mt-2">
-                    <DeleteResource
-                      id={doc.id}
-                      title={doc.title}
-                      type={type === "webpage" ? "webpages" : "documents"}
-                    />
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <DeleteResource
+                        id={doc.id}
+                        title={doc.title}
+                        type={type === "webpage" ? "webpages" : "documents"}
+                      />
+                    </div>
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <Share type={type} resourceId={doc.id} />
+                    </div>
                   </div>
                 </li>
               );
@@ -291,7 +297,7 @@ export default function Dashboard() {
                       <CircleArrowRight className="w-4 h-4 text-gray-500 " />
                     </div>
 
-                    <div className="flex justify-end items-center mt-2 space-x-2">
+                    <div className="flex justify-end items-center mt-2 space-x-2 z-10">
                       <Button
                         variant="ghost"
                         onClick={() => toggleExpand(resource.id)}
@@ -307,6 +313,7 @@ export default function Dashboard() {
                         title={resource.name}
                         type="batchResources"
                       />
+                      <Share type="batchResource" resourceId={resource.id} />
                     </div>
 
                     {expandedResourceId === resource.id && (
