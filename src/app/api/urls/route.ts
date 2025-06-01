@@ -108,12 +108,12 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export function extractTitle(html: string): string | null {
+function extractTitle(html: string): string | null {
   const titleMatch = html.match(/<title>(.*?)<\/title>/i);
   return titleMatch ? titleMatch[1].trim() : null;
 }
 
-export function extractTextContent(html: string): string {
+function extractTextContent(html: string): string {
   // Remove HTML tags and get text content (simplified)
   let text = html.replace(
     /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,

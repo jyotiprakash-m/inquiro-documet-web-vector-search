@@ -2,7 +2,6 @@ import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { Client } from "minio";
-import { extractTextContent, extractTitle } from "../urls/route";
 type UploadWebPageOptions = {
   url: string;
   userId: string;
@@ -148,7 +147,7 @@ export async function POST(request: NextRequest) {
 
 // let create supposing functions for file storage, etc.
 
-export async function uploadDocument({
+async function uploadDocument({
   file,
   userId,
   baseUrl,
@@ -219,7 +218,7 @@ export async function uploadDocument({
   }
 }
 
-export async function uploadWebPage({
+async function uploadWebPage({
   url,
   userId,
   baseUrl,
@@ -280,4 +279,21 @@ export async function uploadWebPage({
     console.error("Error uploading webpage:", error);
     return { success: false, error: "Failed to process URL" };
   }
+}
+
+function extractTitle(html: string): string | null {
+  const titleMatch = html.match(/<title>(.*?)<\/title>/i);
+  return titleMatch ? titleMatch[1].trim() : null;
+}
+
+function extractTextContent(html: string): string {
+  // Remove HTML tags and get text content (simplified)
+  let text = html.replace(
+    /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
+    " "
+  );
+  text = text.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, " ");
+  text = text.replace(/<[^>]+>/g, " ");
+  text = text.replace(/\s+/g, " ").trim();
+  return text;
 }

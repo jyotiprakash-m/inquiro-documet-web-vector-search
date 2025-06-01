@@ -317,9 +317,7 @@ async function extractTextFromPdfBuffer(pdfBuffer: Buffer): Promise<string> {
     }
   });
 }
-export async function extractTextFromDocxBuffer(
-  docxBuffer: Buffer
-): Promise<string> {
+async function extractTextFromDocxBuffer(docxBuffer: Buffer): Promise<string> {
   try {
     const result = await mammoth.extractRawText({ buffer: docxBuffer });
     return result.value; // The extracted text
@@ -331,9 +329,7 @@ export async function extractTextFromDocxBuffer(
     );
   }
 }
-export async function extractTextFromTxtBuffer(
-  txtBuffer: Buffer
-): Promise<string> {
+async function extractTextFromTxtBuffer(txtBuffer: Buffer): Promise<string> {
   try {
     return txtBuffer.toString("utf-8"); // or "ascii" if needed
   } catch (error) {
@@ -345,9 +341,7 @@ export async function extractTextFromTxtBuffer(
   }
 }
 
-export async function extractTextFromDocBuffer(
-  docBuffer: Buffer
-): Promise<string> {
+async function extractTextFromDocBuffer(docBuffer: Buffer): Promise<string> {
   return new Promise((resolve, reject) => {
     const bufferStream = new Readable();
     bufferStream.push(docBuffer);
