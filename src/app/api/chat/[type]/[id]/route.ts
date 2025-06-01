@@ -1,94 +1,100 @@
+// /api/chat/[type]/[id]/route.ts
 import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { OpenAI } from "openai";
 import { prisma } from "@/lib/prisma";
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function POST(request: NextRequest) {
   try {
     const { userId } = await auth();
-
-    if (!userId) {
+    if (!userId)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
 
     const url = new URL(request.url);
-    const webPageId = url.pathname.split("/").pop();
+    const segments = url.pathname.split("/");
+    const type = segments[segments.length - 2];
+    const id = segments[segments.length - 1];
     const { messages, prompt } = await request.json();
 
-    if (!prompt || !messages) {
+    if (!prompt || !messages)
       return NextResponse.json(
         { error: "Missing prompt or messages" },
         { status: 400 }
       );
+
+    let document: any;
+    switch (type) {
+      case "batchResource":
+        document = await prisma.batchResource.findUnique({
+          where: { id },
+          include: {
+            documents: { include: { vectors: true } },
+            webPages: { include: { vectors: true } },
+          },
+        });
+        break;
+      case "document":
+        document = await prisma.document.findUnique({
+          where: { id },
+          include: { vectors: true },
+        });
+        break;
+      case "webpage":
+        document = await prisma.webPage.findUnique({
+          where: { id },
+          include: { vectors: true },
+        });
+        break;
+      default:
+        return NextResponse.json({ error: "Invalid type" }, { status: 400 });
     }
 
-    // Get document from database
-    const document = await prisma.webPage.findUnique({
-      where: { id: webPageId },
-      include: {
-        vectors: true,
-      },
-    });
-
-    if (!document) {
+    if (!document)
       return NextResponse.json(
         { error: "Document not found" },
         { status: 404 }
       );
-    }
-
-    if (document.userId !== userId) {
+    if (document.userId !== userId)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
 
-    // Generate embedding for the query
     const queryEmbeddingResponse = await openai.embeddings.create({
       model: "text-embedding-ada-002",
       input: prompt,
     });
 
     const queryEmbedding = queryEmbeddingResponse.data[0].embedding;
+    const allVectors =
+      type === "batchResource"
+        ? [
+            ...document.documents.flatMap((doc: any) => doc.vectors),
+            ...document.webPages.flatMap((page: any) => page.vectors),
+          ]
+        : document.vectors;
 
-    // Find most relevant chunks
-    const relevantChunks = findMostSimilarChunks(
-      queryEmbedding,
-      document.vectors,
-      3
-    );
-
+    const relevantChunks = findMostSimilarChunks(queryEmbedding, allVectors, 3);
     const context = relevantChunks.map((v) => v.content).join("\n\n");
 
-    // Get completion from OpenAI (not streaming)
     const chatResponse = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
       messages: [
         {
           role: "system",
           content: `You are a helpful assistant that answers questions based on the provided document context. 
-          Only answer what can be inferred from the context. If you don't know the answer, say so.
+Only answer what can be inferred from the context. If you don't know the answer, say so.
 
-          Context from the document:
-          ${context}`,
+Context from the document:
+${context}`,
         },
         ...messages,
-        {
-          role: "user",
-          content: prompt,
-        },
+        { role: "user", content: prompt },
       ],
     });
 
     const assistantReply =
       chatResponse.choices?.[0]?.message?.content || "I'm not sure.";
-
-    return NextResponse.json({
-      response: assistantReply,
-    });
+    return NextResponse.json({ response: assistantReply });
   } catch (error) {
     console.error("Error in chat API:", error);
     return NextResponse.json(
@@ -98,14 +104,11 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Function to find most similar chunks based on cosine similarity
 function findMostSimilarChunks(
   queryEmbedding: number[],
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
   vectors: any[],
   count: number
 ) {
-  // Calculate cosine similarity for each vector
   const vectorsWithSimilarity = vectors.map((vector) => {
     const similarity = calculateCosineSimilarity(
       queryEmbedding,
@@ -113,14 +116,11 @@ function findMostSimilarChunks(
     );
     return { ...vector, similarity };
   });
-
-  // Sort by similarity (descending) and take top results
   return vectorsWithSimilarity
     .sort((a, b) => b.similarity - a.similarity)
     .slice(0, count);
 }
 
-// Calculate cosine similarity between two vectors
 function calculateCosineSimilarity(vecA: number[], vecB: number[]): number {
   let dotProduct = 0;
   let normA = 0;
@@ -128,16 +128,11 @@ function calculateCosineSimilarity(vecA: number[], vecB: number[]): number {
 
   for (let i = 0; i < vecA.length; i++) {
     dotProduct += vecA[i] * vecB[i];
-    normA += vecA[i] * vecA[i];
-    normB += vecB[i] * vecB[i];
+    normA += vecA[i] ** 2;
+    normB += vecB[i] ** 2;
   }
 
   normA = Math.sqrt(normA);
   normB = Math.sqrt(normB);
-
-  if (normA === 0 || normB === 0) {
-    return 0;
-  }
-
-  return dotProduct / (normA * normB);
+  return normA && normB ? dotProduct / (normA * normB) : 0;
 }
