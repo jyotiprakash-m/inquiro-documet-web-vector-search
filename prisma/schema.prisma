@@ -70,13 +70,15 @@ model BatchResource {
 }
 
 model Chat {
-  id              String         @id @default(cuid())
+  id              String         @id @default(uuid())
   batchResourceId String?
   batchResource   BatchResource? @relation(fields: [batchResourceId], references: [id], onDelete: Cascade)
   documentId      String?
   document        Document?      @relation(fields: [documentId], references: [id], onDelete: Cascade)
   webPageId       String?
   webPage         WebPage?       @relation(fields: [webPageId], references: [id], onDelete: Cascade)
+  userId          String
+  title           String
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
   Message         Message[]

@@ -1,9 +1,11 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+import { Send } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-type ChatType = "batchResource" | "document" | "webpage";
+export type ChatType = "batchResource" | "document" | "webpage";
 
 export default function ChatPage() {
   const { type, id } = useParams() as { type: ChatType; id: string };
@@ -37,9 +39,8 @@ export default function ChatPage() {
         const res = await fetch(`/api/${type}s/${id}`);
         if (!res.ok) throw new Error("Fetch failed");
         const data = await res.json();
-        const name = data[`${type}`]?.name
-          ? data[`${type}`]?.name
-          : data[`${type}`]?.title;
+        const name =
+          data[`${type}`]?.name || data[`${type}`]?.title || "Untitled";
 
         setTitle(name);
         setMessages([
@@ -97,8 +98,14 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-7rem)]">
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+    <div className="flex flex-col h-full">
+      <header className="mb-4 px-2">
+        <h1 className="text-xl font-semibold text-gray-800 truncate">
+          {title}
+        </h1>
+      </header>
+
+      <section className="flex-1 overflow-y-auto px-2 space-y-4 scrollbar-thin scrollbar-thumb-violet-300 scrollbar-track-gray-100">
         {messages.map((message) => (
           <div
             key={message.id}
@@ -107,11 +114,12 @@ export default function ChatPage() {
             }`}
           >
             <div
-              className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                message.role === "user"
-                  ? "bg-indigo-600 text-white"
-                  : "bg-gray-200 text-gray-800"
-              }`}
+              className={`max-w-[75%] rounded-lg px-5 py-3 whitespace-pre-wrap break-words
+                ${
+                  message.role === "user"
+                    ? "bg-indigo-600 text-white"
+                    : "bg-gray-200 text-gray-800"
+                }`}
             >
               {message.content}
             </div>
@@ -120,7 +128,7 @@ export default function ChatPage() {
 
         {isLoading && (
           <div className="flex justify-start">
-            <div className="max-w-[80%] rounded-lg px-4 py-2 bg-gray-200 text-gray-800">
+            <div className="max-w-[75%] rounded-lg px-5 py-3 bg-gray-200 text-gray-800">
               <div className="flex space-x-2">
                 {[0, 0.2, 0.4].map((delay, i) => (
                   <div
@@ -135,30 +143,33 @@ export default function ChatPage() {
         )}
 
         <div ref={messagesEndRef} />
-      </div>
+      </section>
 
-      <div className="border-t p-4">
+      <footer className="border-t p-4 bg-white sticky bottom-0">
         <form onSubmit={handleSubmit} className="flex space-x-4">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder={`Ask a question about "${title}"...`}
-            className="flex-1 border rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="flex-1 border rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+            disabled={isLoading}
           />
-          <button
+          <Button
             type="submit"
+            size="lg"
             disabled={isLoading || !input.trim()}
-            className={`px-4 py-2 rounded-md text-white ${
-              isLoading || !input.trim()
-                ? "bg-gray-300 cursor-not-allowed"
-                : "bg-indigo-600 hover:bg-indigo-700"
-            }`}
+            className={`px-5 rounded-md text-white font-semibold transition flex
+              ${
+                isLoading || !input.trim()
+                  ? "bg-gray-300 cursor-not-allowed"
+                  : "bg-indigo-600 hover:bg-indigo-700"
+              }`}
           >
-            Send
-          </button>
+            <Send className="h-6 w-6" /> Send
+          </Button>
         </form>
-      </div>
+      </footer>
     </div>
   );
 }
