@@ -59,7 +59,7 @@ export default function ChatPage() {
       }
     }
 
-    if (type && id) fetchInfo();
+    if (type && id && chatId) fetchInfo();
   }, [type, id, chatId]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {

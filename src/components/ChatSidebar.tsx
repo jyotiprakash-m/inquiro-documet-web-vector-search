@@ -24,58 +24,27 @@ export default function ChatSidebar() {
     if (hasFetchedRef.current) return;
 
     const fetchChats = async () => {
+      hasFetchedRef.current = true;
+
       try {
-        hasFetchedRef.current = true; // Set before async operations
+        const [chatsRes, resourceRes] = await Promise.all([
+          fetch(`/api/chats?type=${type}&id=${id}`),
+          fetch(`/api/${type}s/${id}`),
+        ]);
 
-        const response = await fetch(`/api/chats?type=${type}&id=${id}`);
-        // get the resource info
-        const resourceInfo = await fetch(`/api/${type}s/${id}`);
-        if (!resourceInfo.ok) throw new Error("Fetch failed");
-        const info = await resourceInfo.json();
+        if (!chatsRes.ok || !resourceRes.ok) {
+          throw new Error("Failed to fetch data");
+        }
 
-        const name =
-          info[`${type}`]?.name || info[`${type}`]?.title || "Untitled";
-        if (!response.ok) throw new Error("Failed to fetch chats");
+        const fetchedChats: Chat[] = await chatsRes.json();
 
-        const data: Chat[] = await response.json();
-
-        if (data.length === 0) {
-          const newChatRes = await fetch(`/api/chats`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              type,
-              title: "Untitled chat",
-              id,
-            }),
-          });
-
-          if (!newChatRes.ok) throw new Error("Failed to create new chat");
-
-          const newChatData = await newChatRes.json();
-
-          if (!response.ok) throw new Error("Failed to fetch chats");
-          // Store first assistant message in the new chat
-          const firstMessage = {
-            role: "assistant",
-            content: `Hello! I'm your ${type} assistant. Ask me anything about this ${name}.`,
-          };
-          await fetch(`/api/messages`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              chatId: newChatData.chat.id,
-              ...firstMessage,
-            }),
-          });
-
-          setChats([newChatData.chat]);
-
-          router.replace(`/chat/${type}/${id}?chatId=${newChatData.chat.id}`);
+        if (fetchedChats.length === 0) {
+          const newChat = await createChatWithWelcomeMessage(type, id);
+          setChats([newChat]);
+          router.replace(`/chat/${type}/${id}?chatId=${newChat.id}`);
         } else {
-          setChats(data);
-          const chat = data[0];
-          router.replace(`/chat/${type}/${id}?chatId=${chat.id}`);
+          setChats(fetchedChats);
+          router.replace(`/chat/${type}/${id}?chatId=${fetchedChats[0].id}`);
         }
       } catch (error) {
         console.error("Error fetching chats:", error);
@@ -87,44 +56,12 @@ export default function ChatSidebar() {
 
   const createNewChat = async () => {
     try {
-      const newChatRes = await fetch(`/api/chats`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type,
-          title: "Untitled chat",
-          id,
-        }),
-      });
-      if (!newChatRes.ok) {
-        throw new Error("Failed to create new chat");
-      }
+      const newChat = await createChatWithWelcomeMessage(type, id);
+      const updatedChatsRes = await fetch(`/api/chats?type=${type}&id=${id}`);
+      const updatedChats: Chat[] = await updatedChatsRes.json();
 
-      const newChatData = await newChatRes.json();
-
-      // Store first assistant message in the new chat
-      const resourceInfo = await fetch(`/api/${type}s/${id}`);
-      if (!resourceInfo.ok) throw new Error("Fetch failed");
-      const info = await resourceInfo.json();
-
-      const name =
-        info[`${type}`]?.name || info[`${type}`]?.title || "Untitled";
-      const firstMessage = {
-        role: "assistant",
-        content: `Hello! I'm your ${type} assistant. Ask me anything about this ${name}.`,
-      };
-      await fetch(`/api/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chatId: newChatData.chat.id,
-          ...firstMessage,
-        }),
-      });
-      const response = await fetch(`/api/chats?type=${type}&id=${id}`);
-      const data: Chat[] = await response.json();
-      setChats(data);
-      router.replace(`/chat/${type}/${id}?chatId=${newChatData.chat.id}`);
+      setChats(updatedChats);
+      router.replace(`/chat/${type}/${id}?chatId=${newChat.id}`);
     } catch (error) {
       console.error("Error creating new chat:", error);
     }
@@ -136,7 +73,6 @@ export default function ChatSidebar() {
     );
     if (!confirmDelete) return;
 
-    // Find the next available chat before updating the state
     const remainingChats = chats.filter((chat) => chat.id !== selectedChatId);
     const isCurrentChat = chatId === selectedChatId;
 
@@ -145,29 +81,26 @@ export default function ChatSidebar() {
         method: "DELETE",
       });
 
-      if (!res.ok) {
-        throw new Error(`Failed to delete chat: ${res.statusText}`);
-      }
+      if (!res.ok) throw new Error("Failed to delete chat");
+
       setChats(remainingChats);
 
       if (isCurrentChat) {
         if (remainingChats.length > 0) {
           router.replace(`/chat/${type}/${id}?chatId=${remainingChats[0].id}`);
         } else {
-          // No chats left, redirect to the base type page or fallback route
           router.replace(`/chat/${type}/${id}`);
         }
       }
     } catch (error) {
       console.error("Error deleting chat:", error);
-      // Optionally re-add the chat if deletion failed
     }
 
     setEditingId(null);
     setEditedTitle("");
   };
 
-  const saveTitle = async (id: string) => {
+  const saveTitle = async (chatId: string) => {
     if (!editedTitle.trim()) {
       setEditingId(null);
       setEditedTitle("");
@@ -175,20 +108,18 @@ export default function ChatSidebar() {
     }
 
     const updatedChats = chats.map((chat) =>
-      chat.id === id ? { ...chat, title: editedTitle } : chat
+      chat.id === chatId ? { ...chat, title: editedTitle } : chat
     );
     setChats(updatedChats);
 
     try {
-      const res = await fetch(`/api/chats/${id}`, {
+      const res = await fetch(`/api/chats/${chatId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: editedTitle }),
       });
 
-      if (!res.ok) {
-        throw new Error(`Failed to update chat title: ${res.statusText}`);
-      }
+      if (!res.ok) throw new Error("Failed to update title");
     } catch (error) {
       console.error("Error updating chat title:", error);
     }
@@ -272,11 +203,11 @@ export default function ChatSidebar() {
               <Button
                 onClick={() => deleteChat(chat.id)}
                 variant="ghost"
-                className=" p-1 text-gray-500 hover:text-red-600 focus:outline-none"
+                className="p-1 text-gray-500 hover:text-red-600"
                 size="icon"
                 aria-label={`Delete chat ${chat.title}`}
                 title="Delete chat"
-                disabled={chats.length === 1} // Disable if only one chat left
+                disabled={chats.length === 1}
               >
                 <Trash className="w-4 h-4" />
               </Button>
@@ -286,4 +217,43 @@ export default function ChatSidebar() {
       </nav>
     </aside>
   );
+}
+
+/**
+ * Helper: Create a chat and post a welcome assistant message.
+ */
+async function createChatWithWelcomeMessage(
+  type: ChatType,
+  id: string
+): Promise<Chat> {
+  const createRes = await fetch(`/api/chats`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type, title: "Untitled chat", id }),
+  });
+
+  if (!createRes.ok) throw new Error("Failed to create chat");
+  const { chat } = await createRes.json();
+
+  const resourceRes = await fetch(`/api/${type}s/${id}`);
+  if (!resourceRes.ok) throw new Error("Failed to fetch resource info");
+
+  const resourceInfo = await resourceRes.json();
+  const name =
+    resourceInfo[`${type}`]?.name ||
+    resourceInfo[`${type}`]?.title ||
+    "Untitled";
+
+  const welcomeMessage = {
+    role: "assistant",
+    content: `Hello! I'm your ${type} assistant. Ask me anything about this ${name}.`,
+  };
+
+  await fetch(`/api/messages`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chatId: chat.id, ...welcomeMessage }),
+  });
+
+  return chat;
 }
