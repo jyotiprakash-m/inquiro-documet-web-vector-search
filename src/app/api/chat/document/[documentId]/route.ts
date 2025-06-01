@@ -42,6 +42,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!document) {
+      return NextResponse.json({ error: "Url not found" }, { status: 404 });
+    }
     if (document.userId !== userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
