@@ -109,7 +109,6 @@ export default function Dashboard() {
   const handleDocumentClick = (documentId: string, type: string) => {
     router.push(`/chat/${type}/${documentId}`);
   };
-  console.log(batchResources);
 
   return (
     <div className="space-y-6">

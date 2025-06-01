@@ -2,12 +2,14 @@
 
 import { Button } from "@/components/ui/button";
 import { Send } from "lucide-react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 export type ChatType = "batchResource" | "document" | "webpage";
 
 export default function ChatPage() {
+  const searchParams = useSearchParams();
+  const chatId = searchParams.get("chatId");
   const { type, id } = useParams() as { type: ChatType; id: string };
 
   const [title, setTitle] = useState("");
@@ -17,13 +19,7 @@ export default function ChatPage() {
     content: string;
   };
 
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "welcome",
-      role: "assistant",
-      content: `Hello! I'm your assistant. Ask me anything.`,
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -39,24 +35,32 @@ export default function ChatPage() {
         const res = await fetch(`/api/${type}s/${id}`);
         if (!res.ok) throw new Error("Fetch failed");
         const data = await res.json();
+
         const name =
           data[`${type}`]?.name || data[`${type}`]?.title || "Untitled";
 
         setTitle(name);
-        setMessages([
-          {
-            id: "welcome",
-            role: "assistant",
-            content: `Hello! I'm your ${type} assistant. Ask me anything about "${name}".`,
-          },
-        ]);
+
+        // Get all messages from the chatId
+        const chatRes = await fetch(`/api/chats/${chatId}`);
+        if (!chatRes.ok) throw new Error("Failed to fetch chat messages");
+        const chatData = await chatRes.json();
+
+        const chatMessages: Message[] = chatData.chat.messages.map(
+          (msg: any) => ({
+            id: msg.id,
+            role: msg.role,
+            content: msg.content,
+          })
+        );
+        setMessages(chatMessages);
       } catch (err) {
         console.error("Error fetching info:", err);
       }
     }
 
     if (type && id) fetchInfo();
-  }, [type, id]);
+  }, [type, id, chatId]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -77,10 +81,10 @@ export default function ChatPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt: input,
+          chatId,
           messages: [...messages, userMessage],
         }),
       });
-
       const data = await res.json();
       const assistantMessage = {
         id: crypto.randomUUID(),

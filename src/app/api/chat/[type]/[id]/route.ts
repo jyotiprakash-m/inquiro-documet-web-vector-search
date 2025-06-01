@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     const segments = url.pathname.split("/");
     const type = segments[segments.length - 2];
     const id = segments[segments.length - 1];
-    const { messages, prompt } = await request.json();
+    const { messages, prompt, chatId } = await request.json();
 
     if (!prompt || !messages)
       return NextResponse.json(
@@ -59,6 +59,17 @@ export async function POST(request: NextRequest) {
     if (document.userId !== userId)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+    // Save the user message to the chat pick the last message
+    const lastMessage = messages[messages.length - 1];
+    await prisma.message.create({
+      data: {
+        content: lastMessage.content,
+        role: lastMessage.role,
+        chatId: chatId,
+        id: lastMessage.id,
+      },
+    });
+
     const queryEmbeddingResponse = await openai.embeddings.create({
       model: "text-embedding-ada-002",
       input: prompt,
@@ -94,6 +105,14 @@ ${context}`,
 
     const assistantReply =
       chatResponse.choices?.[0]?.message?.content || "I'm not sure.";
+    // Save the assistant's reply
+    await prisma.message.create({
+      data: {
+        content: assistantReply,
+        role: "assistant",
+        chatId: chatId,
+      },
+    });
     return NextResponse.json({ response: assistantReply });
   } catch (error) {
     console.error("Error in chat API:", error);

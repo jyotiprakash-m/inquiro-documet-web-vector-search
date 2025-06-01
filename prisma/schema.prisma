@@ -23,7 +23,7 @@ model Document {
   vectors         Vector[]
   batchResourceId String?
   batchResource   BatchResource? @relation(fields: [batchResourceId], references: [id], onDelete: Cascade)
-  Chat            Chat[]
+  chats           Chat[]
 }
 
 model Vector {
@@ -52,7 +52,7 @@ model WebPage {
   vectors         Vector[]
   batchResourceId String?
   batchResource   BatchResource? @relation(fields: [batchResourceId], references: [id], onDelete: Cascade)
-  Chat            Chat[]
+  chats           Chat[]
 }
 
 model BatchResource {
@@ -66,7 +66,7 @@ model BatchResource {
   updatedAt   DateTime   @updatedAt
   webPages    WebPage[]
   documents   Document[]
-  Chat        Chat[]
+  chats       Chat[]
 }
 
 model Chat {
@@ -81,7 +81,7 @@ model Chat {
   title           String
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
-  Message         Message[]
+  messages        Message[]
 }
 
 model Message {

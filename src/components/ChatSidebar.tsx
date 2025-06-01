@@ -1,22 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "./ui/button";
 import { Plus, Trash, Pencil } from "lucide-react";
 import { ChatType } from "@/app/(home)/chat/[type]/[id]/page";
-
-type ChatSession = {
-  id: string;
-  title: string;
-  type: "webpage" | "document" | "batchResource";
-  relatedId: string;
-  createdAt: string;
-};
+import { Chat } from "@prisma/client";
+import { truncateText } from "@/lib/utils";
 
 export default function ChatSidebar() {
-  const [chats, setChats] = useState<ChatSession[]>([]);
+  const [chats, setChats] = useState<Chat[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editedTitle, setEditedTitle] = useState("");
   const router = useRouter();
@@ -24,46 +18,183 @@ export default function ChatSidebar() {
   const searchParams = useSearchParams();
   const chatId = searchParams.get("chatId");
 
+  const hasFetchedRef = useRef(false);
+
   useEffect(() => {
-    const saved = localStorage.getItem("chatSessions");
-    if (saved) {
+    if (hasFetchedRef.current) return;
+
+    const fetchChats = async () => {
       try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) setChats(parsed);
-      } catch {
-        localStorage.removeItem("chatSessions");
+        hasFetchedRef.current = true; // Set before async operations
+
+        const response = await fetch(`/api/chats?type=${type}&id=${id}`);
+        // get the resource info
+        const resourceInfo = await fetch(`/api/${type}s/${id}`);
+        if (!resourceInfo.ok) throw new Error("Fetch failed");
+        const info = await resourceInfo.json();
+
+        const name =
+          info[`${type}`]?.name || info[`${type}`]?.title || "Untitled";
+        if (!response.ok) throw new Error("Failed to fetch chats");
+
+        const data: Chat[] = await response.json();
+
+        if (data.length === 0) {
+          const newChatRes = await fetch(`/api/chats`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type,
+              title: "Untitled chat",
+              id,
+            }),
+          });
+
+          if (!newChatRes.ok) throw new Error("Failed to create new chat");
+
+          const newChatData = await newChatRes.json();
+
+          if (!response.ok) throw new Error("Failed to fetch chats");
+          // Store first assistant message in the new chat
+          const firstMessage = {
+            role: "assistant",
+            content: `Hello! I'm your ${type} assistant. Ask me anything about this ${name}.`,
+          };
+          await fetch(`/api/messages`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              chatId: newChatData.chat.id,
+              ...firstMessage,
+            }),
+          });
+
+          setChats([newChatData.chat]);
+
+          router.replace(`/chat/${type}/${id}?chatId=${newChatData.chat.id}`);
+        } else {
+          setChats(data);
+          const chat = data[0];
+          router.replace(`/chat/${type}/${id}?chatId=${chat.id}`);
+        }
+      } catch (error) {
+        console.error("Error fetching chats:", error);
       }
-    }
-  }, []);
-
-  const createNewChat = () => {
-    const newChat: ChatSession = {
-      id: crypto.randomUUID(),
-      title: "Untitled Chat",
-      type: type,
-      relatedId: id,
-      createdAt: new Date().toISOString(),
     };
-    const updated = [newChat, ...chats];
-    setChats(updated);
-    localStorage.setItem("chatSessions", JSON.stringify(updated));
-    router.push(`/chat/${type}/${id}?chatId=${newChat.id}`);
+
+    fetchChats();
+  }, [type, id]);
+
+  const createNewChat = async () => {
+    try {
+      const newChatRes = await fetch(`/api/chats`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type,
+          title: "Untitled chat",
+          id,
+        }),
+      });
+      if (!newChatRes.ok) {
+        throw new Error("Failed to create new chat");
+      }
+
+      const newChatData = await newChatRes.json();
+
+      // Store first assistant message in the new chat
+      const resourceInfo = await fetch(`/api/${type}s/${id}`);
+      if (!resourceInfo.ok) throw new Error("Fetch failed");
+      const info = await resourceInfo.json();
+
+      const name =
+        info[`${type}`]?.name || info[`${type}`]?.title || "Untitled";
+      const firstMessage = {
+        role: "assistant",
+        content: `Hello! I'm your ${type} assistant. Ask me anything about this ${name}.`,
+      };
+      await fetch(`/api/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chatId: newChatData.chat.id,
+          ...firstMessage,
+        }),
+      });
+      const response = await fetch(`/api/chats?type=${type}&id=${id}`);
+      const data: Chat[] = await response.json();
+      setChats(data);
+      router.replace(`/chat/${type}/${id}?chatId=${newChatData.chat.id}`);
+    } catch (error) {
+      console.error("Error creating new chat:", error);
+    }
   };
 
-  const deleteChat = (id: string) => {
-    const filtered = chats.filter((chat) => chat.id !== id);
-    setChats(filtered);
-    localStorage.setItem("chatSessions", JSON.stringify(filtered));
-  };
-
-  const saveTitle = (id: string) => {
-    if (!editedTitle.trim()) return;
-    const updated = chats.map((chat) =>
-      chat.id === id ? { ...chat, title: editedTitle.trim() } : chat
+  const deleteChat = async (selectedChatId: string) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this chat?"
     );
-    setChats(updated);
-    localStorage.setItem("chatSessions", JSON.stringify(updated));
+    if (!confirmDelete) return;
+
+    // Find the next available chat before updating the state
+    const remainingChats = chats.filter((chat) => chat.id !== selectedChatId);
+    const isCurrentChat = chatId === selectedChatId;
+
+    try {
+      const res = await fetch(`/api/chats/${selectedChatId}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        throw new Error(`Failed to delete chat: ${res.statusText}`);
+      }
+      setChats(remainingChats);
+
+      if (isCurrentChat) {
+        if (remainingChats.length > 0) {
+          router.replace(`/chat/${type}/${id}?chatId=${remainingChats[0].id}`);
+        } else {
+          // No chats left, redirect to the base type page or fallback route
+          router.replace(`/chat/${type}/${id}`);
+        }
+      }
+    } catch (error) {
+      console.error("Error deleting chat:", error);
+      // Optionally re-add the chat if deletion failed
+    }
+
     setEditingId(null);
+    setEditedTitle("");
+  };
+
+  const saveTitle = async (id: string) => {
+    if (!editedTitle.trim()) {
+      setEditingId(null);
+      setEditedTitle("");
+      return;
+    }
+
+    const updatedChats = chats.map((chat) =>
+      chat.id === id ? { ...chat, title: editedTitle } : chat
+    );
+    setChats(updatedChats);
+
+    try {
+      const res = await fetch(`/api/chats/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: editedTitle }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`Failed to update chat title: ${res.statusText}`);
+      }
+    } catch (error) {
+      console.error("Error updating chat title:", error);
+    }
+
+    setEditingId(null);
+    setEditedTitle("");
   };
 
   return (
@@ -92,7 +223,7 @@ export default function ChatSidebar() {
             <div>
               <Link
                 href={`/chat/${type}/${id}?chatId=${chat.id}`}
-                className="truncate text-left text-gray-800 flex-1"
+                className="text-left text-gray-800 flex-1"
                 title={chat.title}
               >
                 {editingId === chat.id ? (
@@ -118,7 +249,9 @@ export default function ChatSidebar() {
                     />
                   </form>
                 ) : (
-                  chat.title
+                  <span className="w-full">
+                    {truncateText(chat.title, 15)}{" "}
+                  </span>
                 )}
               </Link>
             </div>
@@ -143,6 +276,7 @@ export default function ChatSidebar() {
                 size="icon"
                 aria-label={`Delete chat ${chat.title}`}
                 title="Delete chat"
+                disabled={chats.length === 1} // Disable if only one chat left
               >
                 <Trash className="w-4 h-4" />
               </Button>
