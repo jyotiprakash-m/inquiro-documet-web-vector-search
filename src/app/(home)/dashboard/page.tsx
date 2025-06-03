@@ -64,18 +64,23 @@ export default function Dashboard() {
         const webpageResponse = await fetch("/api/webpages");
         const webpageData = await webpageResponse.json();
         if (webpageResponse.ok) {
-          setDocuments((prevDocs) => [
-            ...prevDocs,
-            // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-            ...webpageData.documents.map((webpage: any) => ({
-              id: webpage.id,
-              title: webpage.title,
-              fileType: "text/html",
-              fileSize: 0, // URLs don't have a file size
-              createdAt: webpage.createdAt,
-            })),
-          ]);
+          setDocuments((prevDocs) => {
+            const existingIds = new Set(prevDocs.map((doc) => doc.id));
+
+            const newDocs = webpageData.documents
+              .filter((webpage: any) => !existingIds.has(webpage.id)) // Filter out duplicates
+              .map((webpage: any) => ({
+                id: webpage.id,
+                title: webpage.title,
+                fileType: "text/html",
+                fileSize: 0, // URLs don't have a file size
+                createdAt: webpage.createdAt,
+              }));
+
+            return [...prevDocs, ...newDocs];
+          });
         }
+
         // Fetch batch resources
         const batchResponse = await fetch("/api/batchResources");
         if (batchResponse.ok) {

@@ -5,8 +5,10 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 
 export default function BatchUploadForm() {
+  const router = useRouter();
   const [resources, setResources] = useState<any[]>([]);
   const [resourceType, setResourceType] = useState<"document" | "url" | "both">(
     "document"
@@ -75,6 +77,17 @@ export default function BatchUploadForm() {
   // Create a process function to handle the resources
   const processResources = async () => {
     try {
+      if (!resourceName.trim()) {
+        alert("Please enter a name for the resource.");
+        return;
+      }
+      if (resources.length === 0) {
+        alert("Please add at least one resource (document or URL).");
+        return;
+      }
+      setUploading(true); // Start uploading
+
+      setError(null); // Reset error state
       const formData = new FormData();
 
       // Add document files with associated metadata (id and name)
@@ -115,7 +128,6 @@ export default function BatchUploadForm() {
       console.log("Upload success:", data);
 
       // Poll for vectorization progress
-      setUploading(true); // Start uploading
 
       const pollInterval = setInterval(async () => {
         let completedCount = 0;
@@ -155,7 +167,8 @@ export default function BatchUploadForm() {
           setUploading(false);
           alert("All resources processed successfully!");
           // redirect to chat page or show success message
-          // Optionally redirect or show success message
+          // Optionally redirect to chat page
+          router.push(`/chat/batchResource/${data.batchResourceId}`);
         }
       }, 1000);
     } catch (error) {

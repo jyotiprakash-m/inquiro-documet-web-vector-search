@@ -135,6 +135,7 @@ export async function POST(request: NextRequest) {
       success: true,
       message: "Resources processed successfully",
       ids: resultMap,
+      batchResourceId: batchResource.id,
     });
   } catch (error) {
     console.error("Error processing upload-batch:", error);
