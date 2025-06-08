@@ -6,7 +6,6 @@ interface ShareOptions {
   type: "document" | "webpage" | "batchResource";
   resourceId: string;
   maxViews: number;
-  baseUrl: string;
 }
 
 // Generate encoded share URL
@@ -15,8 +14,7 @@ export function generateShareUrl({
   type,
   resourceId,
   maxViews,
-  baseUrl,
-}: ShareOptions): { encodedUrl: string; meta: any } {
+}: ShareOptions): { encodedUrl: string; meta: any; token: string } {
   const expiryTime = new Date(); // Set expiry time to 7 days from now
   expiryTime.setDate(expiryTime.getDate() + 7); // Set expiry to 7 days
   const payload = {
@@ -35,11 +33,12 @@ export function generateShareUrl({
     .replace(/\//g, "_")
     .replace(/=+$/, "");
 
-  const shareUrl = `${baseUrl}/share/verify/${encoded}`;
+  const shareUrl = `/verify-share?token=${encoded}`;
 
   return {
     encodedUrl: shareUrl,
     meta: payload,
+    token: encoded,
   };
 }
 

@@ -10,9 +10,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { id, type, originalUrl, shareUrl, shareBy } = await request.json();
+    const { id, type, shareUrl, token } = await request.json();
 
-    if (!id || !type || !originalUrl || !shareUrl || !shareBy) {
+    if (!id || !type || !shareUrl || !token) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -32,15 +32,24 @@ export async function POST(request: NextRequest) {
     }
 
     const data = {
-      userId,
-      originalUrl,
+      originalUrl: "",
       shareUrl,
-      shareBy,
+      shareBy: userId,
       type,
+      token,
       [relationKey]: id,
     };
 
     const share = await prisma.share.create({ data });
+    //Generate original url
+    const originalUrl = `${request.nextUrl.origin}/chat/share/${share.id}`;
+    //update the originalUlr
+    await prisma.share.update({
+      where: { id: share.id },
+      data: {
+        originalUrl: originalUrl,
+      },
+    });
 
     return NextResponse.json({
       success: true,

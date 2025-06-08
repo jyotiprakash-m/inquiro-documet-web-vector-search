@@ -104,6 +104,7 @@ model Share {
   type            String
   originalUrl     String
   shareUrl        String         @unique
+  token           String         @unique
   shareBy         String
   allocatedCounts Int            @default(0)
   createdAt       DateTime       @default(now())

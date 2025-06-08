@@ -147,3 +147,11 @@
   border-radius: 10px;
   border: 2px solid #f3f4f6;
 }
+/* styles/globals.css */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}

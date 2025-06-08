@@ -7,13 +7,12 @@ export async function POST(request: NextRequest) {
   try {
     const { userId } = await auth();
 
-    if (!userId) {
+    const { shareBy, id } = await request.json();
+    if (!userId || userId === shareBy) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { shareBy, shareUrl } = await request.json();
-
-    if (!shareUrl || !shareBy) {
+    if (!id || !shareBy) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -22,12 +21,12 @@ export async function POST(request: NextRequest) {
 
     // If shareUrl is unique, make sure it's marked as @unique in your Prisma schema
     const existingShare = await prisma.share.findUnique({
-      where: { shareUrl },
+      where: { id },
     });
-    const encode = shareUrl.split("/").pop();
+    const encode = existingShare?.token;
 
     // lets decode
-    const decode = decodeShareUrl(encode);
+    const decode = decodeShareUrl(encode as string);
     if (decode.e && Number(decode.e) < Date.now()) {
       return NextResponse.json(
         { error: "Share link has expired" },

@@ -18,29 +18,39 @@ interface ShareProps {
 }
 
 export default function Share({ type, resourceId }: ShareProps) {
+  const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
   const { userId } = useAuth();
   const [shareUrl, setShareUrl] = useState<string>("");
   const [maxViews, setMaxViews] = useState<number>(1);
-  const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
 
-  const handleGenerate = () => {
-    const result = generateShareUrl({
-      shareBy: userId as string,
-      type,
-      resourceId,
-      maxViews,
-      baseUrl,
-    });
+  const handleGenerateAndCreate = async () => {
+    try {
+      const result = generateShareUrl({
+        shareBy: userId as string,
+        type,
+        resourceId,
+        maxViews,
+      });
+      setShareUrl(result.encodedUrl);
 
-    // We are going to store the share
-    // localhost:3000/chat/[share]/[shareId]
-
-    setShareUrl(result.encodedUrl);
+      const res = await fetch(`/api/shares`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: resourceId,
+          type: type,
+          shareUrl: result.encodedUrl,
+          token: result.token,
+        }),
+      });
+    } catch (error) {
+      console.log("Error during generating url", error);
+    }
   };
 
   const handleCopy = async () => {
     if (shareUrl) {
-      await navigator.clipboard.writeText(shareUrl);
+      await navigator.clipboard.writeText(baseUrl + shareUrl);
       alert("Share URL copied to clipboard!");
     }
   };
@@ -68,7 +78,7 @@ export default function Share({ type, resourceId }: ShareProps) {
             />
           </div>
           {shareUrl === "" && (
-            <Button onClick={handleGenerate}>Generate URL</Button>
+            <Button onClick={handleGenerateAndCreate}>Generate URL</Button>
           )}
           {shareUrl && (
             <div className="grid gap-2">
@@ -77,7 +87,7 @@ export default function Share({ type, resourceId }: ShareProps) {
                 <Input
                   className="flex-1"
                   readOnly
-                  value={shareUrl}
+                  value={baseUrl + shareUrl}
                   onClick={(e) => (e.target as HTMLInputElement).select()}
                 />
                 <Button variant="ghost" size="icon" onClick={handleCopy}>
