@@ -27,9 +27,14 @@ export default function ChatSidebar() {
       hasFetchedRef.current = true;
 
       try {
+        const shareId = type === "share" ? id : undefined;
+        const resourceUrl = shareId
+          ? `/api/${type}s/${id}?shareId=${shareId}`
+          : `/api/${type}s/${id}`;
+
         const [chatsRes, resourceRes] = await Promise.all([
           fetch(`/api/chats?type=${type}&id=${id}`),
-          fetch(`/api/${type}s/${id}`),
+          fetch(resourceUrl),
         ]);
 
         if (!chatsRes.ok || !resourceRes.ok) {
@@ -50,8 +55,7 @@ export default function ChatSidebar() {
         console.error("Error fetching chats:", error);
       }
     };
-
-    fetchChats();
+    if (type && id) fetchChats();
   }, [type, id]);
 
   const createNewChat = async () => {
@@ -242,6 +246,9 @@ async function createChatWithWelcomeMessage(
   const name =
     resourceInfo[`${type}`]?.name ||
     resourceInfo[`${type}`]?.title ||
+    resourceInfo[`${type}`]?.webPage?.title ||
+    resourceInfo[`${type}`]?.document?.title ||
+    resourceInfo[`${type}`]?.batchResource?.name ||
     "Untitled";
 
   const welcomeMessage = {

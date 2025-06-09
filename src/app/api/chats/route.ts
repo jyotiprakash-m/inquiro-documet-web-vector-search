@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
       batchResource: "batchResourceId",
       document: "documentId",
       webpage: "webPageId",
+      share: "shareId",
     } as const;
 
     const relationKey = validTypes[type as keyof typeof validTypes];
@@ -76,6 +77,7 @@ export async function GET(request: NextRequest) {
       batchResource: "batchResourceId",
       document: "documentId",
       webpage: "webPageId",
+      share: "shareId",
     } as const;
 
     if (!type || !(type in validTypes)) {

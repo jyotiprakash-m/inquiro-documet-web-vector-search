@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Share } from "@prisma/client";
-
+import { Suspense } from "react";
 const formatFileSize = (bytes: number) => {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`;
@@ -45,7 +45,7 @@ const VerifyShare = () => {
       }
 
       try {
-        const res = await fetch(`/api/shares/${token}`);
+        const res = await fetch(`/api/shares/token/${token}`);
         if (!res.ok) throw new Error("Invalid or expired share token");
 
         const data = await res.json();
@@ -201,4 +201,11 @@ const VerifyShare = () => {
   );
 };
 
-export default VerifyShare;
+export default function SuspenseVerifyShare() {
+  return (
+    // You could have a loading skeleton as the `fallback` too
+    <Suspense>
+      <VerifyShare />
+    </Suspense>
+  );
+}

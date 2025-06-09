@@ -9,6 +9,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 export async function POST(request: NextRequest) {
   try {
     const { userId } = await auth();
+
     if (!userId)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -47,6 +48,41 @@ export async function POST(request: NextRequest) {
           include: { vectors: true },
         });
         break;
+      case "share":
+        const share = await prisma.share.findUnique({
+          where: { id },
+        });
+        if (!share) {
+          return NextResponse.json(
+            { error: "Share not found" },
+            { status: 404 }
+          );
+        }
+        if (share.type === "document") {
+          document = await prisma.document.findUnique({
+            where: { id: share.documentId as string },
+            include: { vectors: true },
+          });
+        } else if (share.type === "webpage") {
+          document = await prisma.webPage.findUnique({
+            where: { id: share.webPageId as string },
+            include: { vectors: true },
+          });
+        } else if (share.type === "batchResource") {
+          document = await prisma.batchResource.findUnique({
+            where: { id: share.batchResourceId as string },
+            include: {
+              documents: { include: { vectors: true } },
+              webPages: { include: { vectors: true } },
+            },
+          });
+        } else {
+          return NextResponse.json(
+            { error: "Invalid share type" },
+            { status: 400 }
+          );
+        }
+        break;
       default:
         return NextResponse.json({ error: "Invalid type" }, { status: 400 });
     }
@@ -56,7 +92,8 @@ export async function POST(request: NextRequest) {
         { error: "Document not found" },
         { status: 404 }
       );
-    if (document.userId !== userId)
+
+    if (document.userId !== userId && type !== "share")
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     // Save the user message to the chat pick the last message

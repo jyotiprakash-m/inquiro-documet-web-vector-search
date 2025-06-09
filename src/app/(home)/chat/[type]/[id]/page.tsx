@@ -5,7 +5,7 @@ import { Send } from "lucide-react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-export type ChatType = "batchResource" | "document" | "webpage";
+export type ChatType = "batchResource" | "document" | "webpage" | "share";
 
 export default function ChatPage() {
   const searchParams = useSearchParams();
@@ -35,9 +35,13 @@ export default function ChatPage() {
         const res = await fetch(`/api/${type}s/${id}`);
         if (!res.ok) throw new Error("Fetch failed");
         const data = await res.json();
-
         const name =
-          data[`${type}`]?.name || data[`${type}`]?.title || "Untitled";
+          data[`${type}`]?.name ||
+          data[`${type}`]?.title ||
+          data[`${type}`]?.webPage?.title ||
+          data[`${type}`]?.document?.title ||
+          data[`${type}`]?.batchResource?.name ||
+          "Untitled";
 
         setTitle(name);
 

@@ -85,6 +85,8 @@ model Chat {
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
   messages        Message[]
+  shareId         String?
+  share           Share?         @relation(fields: [shareId], references: [id], onDelete: Cascade)
 }
 
 model Message {
@@ -116,6 +118,7 @@ model Share {
   documentId      String?
   document        Document?      @relation(fields: [documentId], references: [id], onDelete: Cascade)
   shareAccesses   ShareAccess[]
+  Chat            Chat[]
 }
 
 model ShareAccess {

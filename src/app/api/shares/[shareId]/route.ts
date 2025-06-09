@@ -10,12 +10,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const url = new URL(request.url);
-    const token = url.pathname.split("/").pop();
-    console.log("token hai", token);
+    const id = url.pathname.split("/").pop();
 
     // Get share from database
     const share = await prisma.share.findUnique({
-      where: { token },
+      where: { id },
       include: {
         batchResource: true,
         document: true,

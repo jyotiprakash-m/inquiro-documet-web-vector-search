@@ -139,7 +139,6 @@ async function vectorizeDocument(
       throw new Error("Downloaded file is empty");
     }
 
-    console.log(`Document type: ${documentType}`);
     let extractedText: string = "";
     // Extract text using pdftotext with buffer input
 

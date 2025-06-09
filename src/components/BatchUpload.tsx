@@ -125,8 +125,6 @@ export default function BatchUploadForm() {
         throw new Error(data.error || "Upload failed");
       }
 
-      console.log("Upload success:", data);
-
       // Poll for vectorization progress
 
       const pollInterval = setInterval(async () => {
