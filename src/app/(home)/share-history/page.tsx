@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Copy } from "lucide-react";
+import { Copy, ExternalLink, Loader } from "lucide-react";
 
 type Share = {
   id: string;
@@ -23,7 +23,7 @@ type ShareWithResource = Share & {
   resource: any;
 };
 
-const MySharePage = () => {
+const ShareHistory = () => {
   const [shares, setShares] = useState<ShareWithResource[]>([]);
   const [loading, setLoading] = useState(true);
   const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
@@ -106,12 +106,18 @@ const MySharePage = () => {
   };
 
   if (loading) {
-    return <div className="p-6 text-gray-600">Loading...</div>;
+    return (
+      <div className="p-6 text-gray-600">
+        <Loader className="w-5 h-5 animate-spin" />
+      </div>
+    );
   }
 
   return (
-    <div className="p-4 sm:p-6 ">
-      <h1 className="text-3xl font-extrabold mb-6 text-gray-800">My Shares</h1>
+    <div>
+      <h1 className="text-2xl font-extrabold mb-6 text-gray-800">
+        Share History
+      </h1>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {shares.map(
           ({
@@ -179,18 +185,6 @@ const MySharePage = () => {
                   </div>
                 )}
 
-                <div className="break-words text-sm">
-                  <strong>Original URL:</strong>{" "}
-                  <a
-                    href={originalUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 underline"
-                  >
-                    {originalUrl}
-                  </a>
-                </div>
-
                 <div className="space-y-1">
                   <div className="text-sm font-medium text-gray-700">
                     Share URL:
@@ -211,6 +205,17 @@ const MySharePage = () => {
                     </Button>
                   </div>
                 </div>
+                <div className="break-words text-sm">
+                  <a
+                    href={baseUrl + originalUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline transition"
+                    title="View the original resource"
+                  >
+                    Chat <ExternalLink className="w-4 h-4" />
+                  </a>
+                </div>
 
                 <div className="flex justify-between items-center text-xs text-gray-600 pt-2 border-t mt-3">
                   <span>
@@ -230,4 +235,4 @@ const MySharePage = () => {
   );
 };
 
-export default MySharePage;
+export default ShareHistory;
